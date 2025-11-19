@@ -16,8 +16,8 @@ class DragonNetModule:
 
         for epoch in range(epochs):
             self.optimizer.zero_grad()
-            propensity_outputs, _, _, regression_outputs = self.model(covariates, treatments)
-            loss = self.criterion(propensity_outputs, treatments, regression_outputs, outcomes)
+            treatment_predictions, _, _, outcome_predictions = self.model(covariates, treatments)
+            loss = self.criterion(treatment_predictions, treatments, outcome_predictions, outcomes)
             loss.backward()
             self.optimizer.step()
 
@@ -25,10 +25,10 @@ class DragonNetModule:
         covariates = data.get_as_tensor("covariates")
         treatments = data.get_as_tensor("treatments")
         outcomes = data.get_as_tensor("outcomes")
-        propensity_output, q0, q1, regression_outputs = self.model(covariates, treatments)
+        treatment_predictions, q0, q1, outcome_predictions = self.model(covariates, treatments)
         plugin_estimate = torch.mean(q1 - q0).item()
-        residual = outcomes - regression_outputs
-        riesz_representer = treatments / propensity_output - (1 - treatments) / (1 - propensity_output)
+        residual = outcomes - outcome_predictions
+        riesz_representer = treatments / treatment_predictions - (1 - treatments) / (1 - treatment_predictions)
         one_step_estimate = plugin_estimate + torch.mean(residual * riesz_representer).item()
         return {"plugin": plugin_estimate, "one step estimate": one_step_estimate}
 
@@ -73,9 +73,10 @@ class DragonNet(nn.Module):
         q0 = F.elu(q0)
         q0 = self.untreated_output(q0)
 
-        regression_output = treatment * q1 + (1 - treatment) * q0
+        treatment_prediction = propensity_output
+        outcome_prediction = treatment * q1 + (1 - treatment) * q0
 
-        return propensity_output, q0, q1, regression_output
+        return treatment_prediction, q0, q1, outcome_prediction
 
 
 class DragonNetLoss(nn.Module):
