@@ -6,6 +6,8 @@ from dataclasses import dataclass
 @dataclass
 class IHDPDataset:
     treatments: np.ndarray
+    counter_factual_treatments: np.ndarray
+    noiseless_untreated_outcomes: np.ndarray
     outcomes: np.ndarray
     counterfactual_outcomes: np.ndarray
     noiseless_untreated_outcomes: np.ndarray
@@ -17,6 +19,9 @@ class IHDPDataset:
         data = np.loadtxt("data/chernozhukov_ihdp_data/ihdp_" + str(index) + ".csv")
         return IHDPDataset(
             treatments=data[:, 0].reshape(-1, 1).astype(np.float32),
+            counter_factual_treatments=(1 - data[:, 0].reshape(-1, 1)).astype(
+                np.float32
+            ),
             outcomes=data[:, 1].reshape(-1, 1).astype(np.float32),
             counterfactual_outcomes=data[:, 2].reshape(-1, 1).astype(np.float32),
             noiseless_untreated_outcomes=data[:, 3].reshape(-1, 1).astype(np.float32),
