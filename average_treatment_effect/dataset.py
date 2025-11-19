@@ -12,6 +12,18 @@ class Dataset:
     noiseless_treated_outcomes: Optional[np.ndarray] = None
     covariates: Optional[np.ndarray] = None
 
+    @classmethod
+    def from_csv(cls, path):
+        data = np.loadtxt(path)
+        return cls(
+            treatments=data[:, 0].reshape(-1, 1).astype(np.float32),
+            outcomes=data[:, 1].reshape(-1, 1).astype(np.float32),
+            counterfactual_outcomes=data[:, 2].reshape(-1, 1).astype(np.float32),
+            noiseless_untreated_outcomes=data[:, 3].reshape(-1, 1).astype(np.float32),
+            noiseless_treated_outcomes=data[:, 4].reshape(-1, 1).astype(np.float32),
+            covariates=data[:, 5:].astype(np.float32),
+        )
+
     def get_average_treatment_effect(self):
         return np.mean(
             self.noiseless_treated_outcomes - self.noiseless_untreated_outcomes
