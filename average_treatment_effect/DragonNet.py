@@ -60,4 +60,19 @@ class DragonNet(nn.Module):
 
         return propensity_output, q0, q1, regression_output
 
-    
+
+class DragonNetLoss(nn.Module):
+    def __init__(self, cross_entropy_weight=0.5):
+        super(DragonNetLoss, self).__init__()
+        self.cross_entropy_weight = cross_entropy_weight
+        self.mse = nn.MSELoss()
+        self.cross = nn.CrossEntropyLoss()
+
+    def forward(self, treatment_prediction, treatment, outcome_prediction, outcome):
+        mse = self.mse(outcome_prediction, outcome)
+        cross = self.cross(treatment_prediction, treatment)
+        loss = mse * (1 - self.cross_entropy_weight) + cross * self.cross_entropy_weight
+        return loss
+
+
+
