@@ -13,7 +13,7 @@ class IHDPDataset:
     covariates: np.ndarray
 
     @classmethod
-    def load_index(cls, index):
+    def load_chernozhukov_replication(cls, index):
         data = np.loadtxt("data/chernozhukov_ihdp_data/ihdp_" + str(index) + ".csv")
         return IHDPDataset(
             treatments=data[:, 0].reshape(-1, 1).astype(np.float32),
