@@ -2,6 +2,24 @@ import torch
 from torch import nn
 
 
+def train_regression_net(data, epochs=100):
+    covariates = data.get_as_tensor("covariates")
+    treatments = data.get_as_tensor("treatments")
+    outcomes = data.get_as_tensor("outcomes")
+
+    model = NaiveNet()
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters())
+    for epoch in range(epochs):
+        optimizer.zero_grad()
+        predictions = model(covariates, treatments)
+        loss = criterion(predictions, outcomes)
+        loss.backward()
+        optimizer.step()
+
+    return model
+
+
 class NaiveNet(nn.Module):
     def __init__(self):
         super(NaiveNet, self).__init__()
