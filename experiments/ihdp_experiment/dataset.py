@@ -16,7 +16,7 @@ class IHDPDataset:
     @classmethod
     def load_chernozhukov_replication(cls, index):
         data = np.loadtxt("data/chernozhukov_ihdp_data/ihdp_" + str(index) + ".csv")
-        return IHDPDataset(
+        return cls(
             treatments=data[:, 0].reshape(-1, 1).astype(np.float32),
             outcomes=data[:, 1].reshape(-1, 1).astype(np.float32),
             counterfactual_outcomes=data[:, 2].reshape(-1, 1).astype(np.float32),
