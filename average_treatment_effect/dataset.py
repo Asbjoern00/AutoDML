@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
 from typing import Optional
-import torch
+
 
 @dataclass
 class Dataset:
@@ -26,17 +26,8 @@ class Dataset:
 
     @classmethod
     def load_chernozhukov_replication(cls, index):
-        path = (
-            "average_treatment_effect/data/chernozhukov_ihdp_data/ihdp_"
-            + str(index)
-            + ".csv"
-        )
+        path = "average_treatment_effect/data/chernozhukov_ihdp_data/ihdp_" + str(index) + ".csv"
         return cls.from_csv(path)
 
     def get_average_treatment_effect(self):
-        return np.mean(
-            self.noiseless_treated_outcomes - self.noiseless_untreated_outcomes
-        )
-
-    def get_as_tensor(self, attribute):
-        return torch.from_numpy(getattr(self, attribute))
+        return np.mean(self.noiseless_treated_outcomes - self.noiseless_untreated_outcomes)
