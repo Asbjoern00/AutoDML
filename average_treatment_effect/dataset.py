@@ -6,12 +6,12 @@ import torch
 
 @dataclass
 class Dataset:
-    treatments: Optional[np.ndarray] = None
-    outcomes: Optional[np.ndarray] = None
-    counterfactual_outcomes: Optional[np.ndarray] = None
-    noiseless_untreated_outcomes: Optional[np.ndarray] = None
-    noiseless_treated_outcomes: Optional[np.ndarray] = None
-    covariates: Optional[np.ndarray] = None
+    treatments: np.ndarray
+    outcomes: np.ndarray
+    counterfactual_outcomes: np.ndarray
+    noiseless_untreated_outcomes: np.ndarray
+    noiseless_treated_outcomes: np.ndarray
+    covariates: np.ndarray
     folds: Optional[List[np.ndarray]] = None
 
     @classmethod
