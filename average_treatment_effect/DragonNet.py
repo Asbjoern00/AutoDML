@@ -1,4 +1,35 @@
 import torch.nn as nn
+import torch
+
+
+class DragonNetModule:
+    def __init__(self):
+        self.model = DragonNet()
+        self.optimizer = torch.optim.Adam(self.model.parameters())
+        self.criterion = DragonNetLoss()
+
+    def train(self, epochs, data):
+        covariates = data.get_as_tensor("covariates")
+        treatments = data.get_as_tensor("treatments")
+        outcomes = data.get_as_tensor("outcomes")
+
+        for epoch in range(epochs):
+            self.optimizer.zero_grad()
+            propensity_outputs, _, _, regression_outputs = self.model(covariates, treatments)
+            loss = self.criterion(propensity_outputs, treatments, regression_outputs, outcomes)
+            loss.backward()
+            self.optimizer.step()
+
+    def get_average_treatment_effect_estimate(self, data):
+        covariates = data.get_as_tensor("covariates")
+        treatments = data.get_as_tensor("treatments")
+        outcomes = data.get_as_tensor("outcomes")
+        propensity_output, q0, q1, regression_outputs = self.model(covariates, treatments)
+        plugin_estimate = torch.mean(q1 - q0).item()
+        residual = outcomes - regression_outputs
+        riesz_representer = treatments / propensity_output - (1 - treatments) / (1 - propensity_output)
+        one_step_estimate = plugin_estimate + torch.mean(residual * riesz_representer).item()
+        return {"plugin": plugin_estimate, "one step estimate": one_step_estimate}
 
 
 class DragonNet(nn.Module):
@@ -72,6 +103,3 @@ class DragonNetLoss(nn.Module):
         cross = self.cross(treatment_prediction, treatment)
         loss = mse * (1 - self.cross_entropy_weight) + cross * self.cross_entropy_weight
         return loss
-
-
-
