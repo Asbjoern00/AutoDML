@@ -16,6 +16,7 @@ class TestDataset:
             "noiseless_untreated_outcomes",
             "noiseless_treated_outcomes",
             "covariates",
+            'folds'
         ]
         assert len(_fields) == len(expected_fields)
         assert [field.name for field in _fields] == expected_fields
