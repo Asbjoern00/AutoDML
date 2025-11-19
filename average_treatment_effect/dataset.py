@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
 from typing import Optional
-
+import torch
 
 @dataclass
 class Dataset:
@@ -37,3 +37,6 @@ class Dataset:
         return np.mean(
             self.noiseless_treated_outcomes - self.noiseless_untreated_outcomes
         )
+
+    def get_as_tensor(self, attribute):
+        return torch.from_numpy(getattr(self, attribute))

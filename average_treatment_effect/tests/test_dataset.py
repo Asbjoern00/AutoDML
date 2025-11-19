@@ -1,4 +1,6 @@
 import numpy as np
+import torch
+
 from average_treatment_effect.dataset import Dataset
 from dataclasses import fields
 
@@ -43,3 +45,9 @@ class TestDataset:
         ).all()
         assert (dataset.noiseless_treated_outcomes == noiseless_treated_outcomes).all()
         assert (dataset.covariates == covariates).all()
+
+    def test_can_convert_to_tensor(self):
+        dataset = Dataset(outcomes=np.array([0, 1, 2]).reshape(-1, 1))
+        outcomes_tensor = dataset.get_as_tensor("outcomes")
+        assert isinstance(outcomes_tensor, torch.Tensor)
+        assert outcomes_tensor.shape == (3, 1)
