@@ -9,8 +9,8 @@ class DragonNet(nn.Module):
         self.base_dragonNet = BaseDragonNet()
         self.epsilon = nn.Parameter(torch.zeros(1))
 
-    def forward(self, covariates, treatment):
-        base_output = self.base_dragonNet(covariates, treatment)
+    def forward(self, covariates, treatments):
+        base_output = self.base_dragonNet(covariates, treatments)
         untreated_outcome_prediction = base_output["untreated_outcome_predictions"] + self.epsilon / (
             1 - base_output["treatment_predictions"]
         )
@@ -18,10 +18,10 @@ class DragonNet(nn.Module):
             base_output["treated_outcome_predictions"] + self.epsilon / base_output["treatment_predictions"]
         )
         targeted_outcome_prediction = (
-            treatment * treated_outcome_prediction + (1 - treatment) * untreated_outcome_prediction
+                treatments * treated_outcome_prediction + (1 - treatments) * untreated_outcome_prediction
         )
         return {
-            "treatment_predictions": base_output["treatment_prediction"],
+            "treatment_predictions": base_output["treatment_predictions"],
             "untreated_outcome_predictions": untreated_outcome_prediction,
             "treated_outcome_predictions": treated_outcome_prediction,
             "outcome_predictions": base_output["outcome_predictions"],
@@ -37,13 +37,13 @@ class BaseDragonNet(nn.Module):
         self.untreated_outcome_net = OutcomeNet()
         self.propensity_output_layer = nn.Linear(200, 1)
 
-    def forward(self, covariates, treatment):
+    def forward(self, covariates, treatments):
         shared_state = self.shared_net(covariates)
         propensity_logit = self.propensity_output_layer(shared_state)
         treatment_prediction = torch.sigmoid(propensity_logit)
         untreated_outcome_prediction = self.untreated_outcome_net(shared_state)
         treated_outcome_prediction = self.treated_outcome_net(shared_state)
-        outcome_prediction = treatment * treated_outcome_prediction + (1 - treatment) * untreated_outcome_prediction
+        outcome_prediction = treatments * treated_outcome_prediction + (1 - treatments) * untreated_outcome_prediction
 
         return {
             "treatment_predictions": treatment_prediction,
@@ -88,7 +88,7 @@ class SharedNet(nn.Module):
 
 
 class DragonNetLoss(nn.Module):
-    def __init__(self, cross_entropy_weight=0.1, tmle_weight=0.5):
+    def __init__(self, cross_entropy_weight=0.1, tmle_weight=0.1):
         super(DragonNetLoss, self).__init__()
         self.base_loss = BaseDragonNetLoss(cross_entropy_weight)
         self.tmle_weight = tmle_weight
