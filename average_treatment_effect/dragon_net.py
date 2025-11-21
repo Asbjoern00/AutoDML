@@ -20,10 +20,10 @@ class BaseDragonNet(nn.Module):
         outcome_prediction = treatment * treated_outcome_prediction + (1 - treatment) * untreated_outcome_prediction
 
         return {
-            "treatment_prediction": treatment_prediction,
-            "untreated_outcome_prediction": untreated_outcome_prediction,
-            "treated_outcome_prediction": treated_outcome_prediction,
-            "outcome_prediction": outcome_prediction,
+            "treatment_predictions": treatment_prediction,
+            "untreated_outcome_predictions": untreated_outcome_prediction,
+            "treated_outcome_predictions": treated_outcome_prediction,
+            "outcome_predictions": outcome_prediction,
         }
 
 
@@ -59,3 +59,14 @@ class SharedNet(nn.Module):
         x = F.elu(x)
 
         return x
+
+
+class BaseDragonNetLoss(nn.Module):
+    def __init__(self, cross_entropy_weight=0.1):
+        super(BaseDragonNetLoss, self).__init__()
+        self.cross_entropy_weight = cross_entropy_weight
+
+    def forward(self, model_output, treatments, outcomes):
+        treatment_cross_entropy = F.binary_cross_entropy(model_output["treatment_predictions"], treatments)
+        outcome_mse = F.mse_loss(model_output["outcome_predictions"], outcomes)
+        return self.cross_entropy_weight * treatment_cross_entropy + (1 - self.cross_entropy_weight) * outcome_mse
