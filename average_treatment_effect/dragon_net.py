@@ -35,9 +35,15 @@ class BaseDragonNet(nn.Module):
         self.shared_layer2 = nn.Linear(200, 200)
         self.shared_layer3 = nn.Linear(200, 200)
 
-        self.treated_outcome_net = OutcomeNet()
-        self.untreated_outcome_net = OutcomeNet()
         self.treatment_prediction_layer = nn.Linear(200, 1)
+
+        self.q0_layer1 = nn.Linear(200, 100)
+        self.q0_layer2 = nn.Linear(100, 100)
+        self.q0_layer3 = nn.Linear(100, 1)
+
+        self.q1_layer1 = nn.Linear(200, 100)
+        self.q1_layer2 = nn.Linear(100, 100)
+        self.q1_layer3 = nn.Linear(100, 1)
 
     def forward(self, covariates, treatments):
         shared_state = self.shared_layer1(covariates)
@@ -48,32 +54,27 @@ class BaseDragonNet(nn.Module):
         shared_state = F.elu(shared_state)
 
         treatment_prediction = self.treatment_prediction_layer(shared_state).sigmoid().clamp(1e-3, 1 - 1e-3)
-        untreated_outcome_prediction = self.untreated_outcome_net(shared_state)
-        treated_outcome_prediction = self.treated_outcome_net(shared_state)
-        outcome_prediction = treatments * treated_outcome_prediction + (1 - treatments) * untreated_outcome_prediction
+
+        q_0 = self.q0_layer1(shared_state)
+        q_0 = F.elu(q_0)
+        q_0 = self.q0_layer2(q_0)
+        q_0 = F.elu(q_0)
+        q0 = self.q0_layer3(q_0)
+
+        q_1 = self.q1_layer1(shared_state)
+        q_1 = F.elu(q_1)
+        q_1 = self.q1_layer2(q_1)
+        q_1 = F.elu(q_1)
+        q1 = self.q1_layer3(q_1)
+
+        outcome_prediction = treatments * q1 + (1 - treatments) * q0
 
         return {
             "treatment_predictions": treatment_prediction,
-            "untreated_outcome_predictions": untreated_outcome_prediction,
-            "treated_outcome_predictions": treated_outcome_prediction,
+            "untreated_outcome_predictions": q0,
+            "treated_outcome_predictions": q1,
             "outcome_predictions": outcome_prediction,
         }
-
-
-class OutcomeNet(nn.Module):
-    def __init__(self):
-        super(OutcomeNet, self).__init__()
-        self.layer1 = nn.Linear(200, 100)
-        self.layer2 = nn.Linear(100, 100)
-        self.layer3 = nn.Linear(100, 1)
-
-    def forward(self, shared_state):
-        x = self.layer1(shared_state)
-        x = F.elu(x)
-        x = self.layer2(x)
-        x = F.elu(x)
-        x = self.layer3(x)
-        return x
 
 
 class DragonNetLoss(nn.Module):
