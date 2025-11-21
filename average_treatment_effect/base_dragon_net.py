@@ -3,11 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class DragonNetModule:
+class BaseDragonNetModule:
     def __init__(self):
-        self.model = DragonNet()
+        self.model = BaseDragonNet()
         self.optimizer = torch.optim.Adam(self.model.parameters())
-        self.criterion = DragonNetLoss()
+        self.criterion = BaseDragonNetLoss()
 
     def train(self, epochs, data):
         covariates = data.get_as_tensor("covariates")
@@ -33,9 +33,9 @@ class DragonNetModule:
         return {"plugin": plugin_estimate, "one step estimate": one_step_estimate}
 
 
-class DragonNet(nn.Module):
+class BaseDragonNet(nn.Module):
     def __init__(self):
-        super(DragonNet, self).__init__()
+        super(BaseDragonNet, self).__init__()
         self.shared1 = nn.Linear(25, 200)
         self.shared2 = nn.Linear(200, 200)
         self.shared3 = nn.Linear(200, 200)
@@ -79,9 +79,9 @@ class DragonNet(nn.Module):
         return treatment_prediction, q0, q1, outcome_prediction
 
 
-class DragonNetLoss(nn.Module):
+class BaseDragonNetLoss(nn.Module):
     def __init__(self, cross_entropy_weight=0.5):
-        super(DragonNetLoss, self).__init__()
+        super(BaseDragonNetLoss, self).__init__()
         self.cross_entropy_weight = cross_entropy_weight
 
     def forward(self, treatment_prediction, treatment, outcome_prediction, outcome):
