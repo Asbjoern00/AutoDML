@@ -18,7 +18,7 @@ class DragonNet(nn.Module):
             base_output["treated_outcome_predictions"] + self.epsilon / base_output["treatment_predictions"]
         )
         targeted_outcome_prediction = (
-                treatments * treated_outcome_prediction + (1 - treatments) * untreated_outcome_prediction
+            treatments * treated_outcome_prediction + (1 - treatments) * untreated_outcome_prediction
         )
         return {
             "treatment_predictions": base_output["treatment_predictions"],
@@ -40,7 +40,7 @@ class BaseDragonNet(nn.Module):
     def forward(self, covariates, treatments):
         shared_state = self.shared_net(covariates)
         propensity_logit = self.propensity_output_layer(shared_state)
-        treatment_prediction = torch.sigmoid(propensity_logit)
+        treatment_prediction = torch.sigmoid(propensity_logit).clamp(1e-3, 1 - 1e-3)
         untreated_outcome_prediction = self.untreated_outcome_net(shared_state)
         treated_outcome_prediction = self.treated_outcome_net(shared_state)
         outcome_prediction = treatments * treated_outcome_prediction + (1 - treatments) * untreated_outcome_prediction
