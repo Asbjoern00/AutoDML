@@ -10,17 +10,17 @@ class DragonNetWrapper:
         self.optimizer = optimizer
 
     @classmethod
-    def create_base_dragon_net(cls):
+    def create_base_dragon_net(cls, weight_decay = 0, learning_rate = 1e-3):
         model = dragon_net.BaseDragonNet()
         criterion = dragon_net.BaseDragonNetLoss()
-        optimizer = torch.optim.Adam(model.parameters())
+        optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
         return cls(model, criterion, optimizer)
 
     @classmethod
-    def create_dragon_net(cls):
+    def create_dragon_net(cls, weight_decay = 0, learning_rate = 1e-3):
         model = dragon_net.DragonNet()
         criterion = dragon_net.DragonNetLoss()
-        optimizer = torch.optim.Adam(model.parameters())
+        optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
         return cls(model, criterion, optimizer)
 
     def train_model(self, data, epochs=1000):
