@@ -88,7 +88,7 @@ class SharedNet(nn.Module):
 
 
 class DragonNetLoss(nn.Module):
-    def __init__(self, cross_entropy_weight=0.1, tmle_weight=0.2):
+    def __init__(self, cross_entropy_weight=0.1, tmle_weight=0.5):
         super(DragonNetLoss, self).__init__()
         self.base_loss = BaseDragonNetLoss(cross_entropy_weight)
         self.tmle_weight = tmle_weight

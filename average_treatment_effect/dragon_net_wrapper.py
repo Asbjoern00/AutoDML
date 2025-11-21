@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import TensorDataset, DataLoader
 
 from average_treatment_effect import dragon_net
 
@@ -10,30 +11,32 @@ class DragonNetWrapper:
         self.optimizer = optimizer
 
     @classmethod
-    def create_base_dragon_net(cls, weight_decay = 0, learning_rate = 1e-3):
+    def create_base_dragon_net(cls, weight_decay=0, learning_rate=1e-3):
         model = dragon_net.BaseDragonNet()
         criterion = dragon_net.BaseDragonNetLoss()
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
         return cls(model, criterion, optimizer)
 
     @classmethod
-    def create_dragon_net(cls, weight_decay = 0, learning_rate = 1e-3):
+    def create_dragon_net(cls, weight_decay=0, learning_rate=1e-3):
         model = dragon_net.DragonNet()
         criterion = dragon_net.DragonNetLoss()
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=weight_decay, lr=learning_rate)
         return cls(model, criterion, optimizer)
 
-    def train_model(self, data, epochs=1000):
+    def train_model(self, data, epochs=100):
         self.model.train()
-        covariates = data.get_as_tensor("covariates")
-        treatments = data.get_as_tensor("treatments")
-        outcomes = data.get_as_tensor("outcomes")
+        data = TensorDataset(
+            data.get_as_tensor("covariates"), data.get_as_tensor("treatments"), data.get_as_tensor("outcomes")
+        )
+        data_loader = DataLoader(data, batch_size=32, shuffle=True)
         for epoch in range(epochs):
-            self.optimizer.zero_grad()
-            model_output = self.model(covariates=covariates, treatments=treatments)
-            loss = self.criterion(model_output=model_output, treatments=treatments, outcomes=outcomes)
-            loss.backward()
-            self.optimizer.step()
+            for covariates, treatments, outcomes in data_loader:
+                self.optimizer.zero_grad()
+                model_output = self.model(covariates=covariates, treatments=treatments)
+                loss = self.criterion(model_output=model_output, treatments=treatments, outcomes=outcomes)
+                loss.backward()
+                self.optimizer.step()
 
     def evaluate(self, data):
         self.model.eval()
