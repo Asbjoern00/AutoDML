@@ -3,6 +3,32 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class DragonNet(nn.Module):
+    def __init__(self):
+        super(DragonNet, self).__init__()
+        self.base_dragonNet = BaseDragonNet()
+        self.epsilon = nn.Parameter(torch.zeros(1))
+
+    def forward(self, covariates, treatment):
+        base_output = self.base_dragonNet(covariates, treatment)
+        untreated_outcome_prediction = base_output["untreated_outcome_predictions"] + self.epsilon / (
+            1 - base_output["treatment_predictions"]
+        )
+        treated_outcome_prediction = (
+            base_output["treated_outcome_predictions"] + self.epsilon / base_output["treatment_predictions"]
+        )
+        targeted_outcome_prediction = (
+            treatment * treated_outcome_prediction + (1 - treatment) * untreated_outcome_prediction
+        )
+        return {
+            "treatment_predictions": base_output["treatment_prediction"],
+            "untreated_outcome_predictions": untreated_outcome_prediction,
+            "treated_outcome_predictions": treated_outcome_prediction,
+            "outcome_predictions": base_output["outcome_predictions"],
+            "targeted_outcome_predictions": targeted_outcome_prediction,
+        }
+
+
 class BaseDragonNet(nn.Module):
     def __init__(self):
         super(BaseDragonNet, self).__init__()
@@ -59,6 +85,18 @@ class SharedNet(nn.Module):
         x = F.elu(x)
 
         return x
+
+
+class DragonNetLoss(nn.Module):
+    def __init__(self, cross_entropy_weight=0.1, tmle_weight=0.5):
+        super(DragonNetLoss, self).__init__()
+        self.base_loss = BaseDragonNetLoss(cross_entropy_weight)
+        self.tmle_weight = tmle_weight
+
+    def forward(self, model_output, treatments, outcomes):
+        base_loss = self.base_loss(model_output, treatments, outcomes)
+        tmle_loss = F.mse_loss(model_output["targeted_outcome_predictions"], outcomes)
+        return self.tmle_weight * tmle_loss + (1 - self.tmle_weight) * base_loss
 
 
 class BaseDragonNetLoss(nn.Module):
