@@ -30,16 +30,3 @@ class DragonNet(nn.Module):
             "base_outcome_prediction": base_outcome_prediction,
             "targeted_outcome_prediction": targeted_outcome_prediction,
         }
-
-
-def dragon_net_loss(
-    model_output, outcomes, treatments, outcome_mse_weight=1, treatment_cross_entropy_weight=0.2, tmle_weight=1
-):
-    outcome_mse = F.mse_loss(model_output["base_outcome_prediction"], outcomes)
-    treatment_cross_entropy = F.binary_cross_entropy(model_output["treatment_prediction"], treatments)
-    tmle_loss = F.mse_loss(model_output["targeted_outcome_prediction"], outcomes)
-    return (
-        outcome_mse * outcome_mse_weight
-        + treatment_cross_entropy * treatment_cross_entropy_weight
-        + tmle_loss * tmle_weight
-    )
