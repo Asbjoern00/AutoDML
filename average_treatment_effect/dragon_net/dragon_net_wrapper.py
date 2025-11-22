@@ -11,7 +11,7 @@ class DragonNetWrapper:
         self.l2_lambda = l2_lambda
 
     @classmethod
-    def create(cls, l2_lambda=1e-2):
+    def create(cls, l2_lambda=1e-4):
         model = dragon_net.DragonNet()
         criterion = dragon_net.DragonNetLoss()
         optimizer = torch.optim.Adam(model.parameters())
