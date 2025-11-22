@@ -1,21 +1,19 @@
 import torch
 
-from average_treatment_effect.dragon_net import dragon_net
+from average_treatment_effect.dragon_net.dragon_net import DragonNet, dragon_net_loss
 
 
 class DragonNetWrapper:
-    def __init__(self, model, criterion, optimizer, l2_lambda):
+    def __init__(self, model, optimizer, l2_lambda):
         self.model = model
-        self.criterion = criterion
         self.optimizer = optimizer
         self.l2_lambda = l2_lambda
 
     @classmethod
-    def create(cls, l2_lambda=1e-4):
-        model = dragon_net.DragonNet()
-        criterion = dragon_net.DragonNetLoss()
+    def create(cls, l2_lambda=1e-2):
+        model = DragonNet()
         optimizer = torch.optim.Adam(model.parameters())
-        return cls(model, criterion, optimizer, l2_lambda)
+        return cls(model, optimizer, l2_lambda)
 
     def train(self, data, epochs=500):
         self.model.train()
@@ -33,8 +31,7 @@ class DragonNetWrapper:
                 )
                 * self.l2_lambda
             )
-            dragon_net_loss = self.criterion(model_output=output, outcomes=outcomes, treatments=treatments)
-            loss = dragon_net_loss + l2_loss
+            loss = dragon_net_loss(model_output=output, outcomes=outcomes, treatments=treatments) + l2_loss
             loss.backward()
             self.optimizer.step()
 
