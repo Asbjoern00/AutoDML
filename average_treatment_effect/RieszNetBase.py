@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from average_treatment_effect.dataset import Dataset as ATEDataset
 
 
 class BaseRieszNet(nn.Module):
@@ -111,17 +112,25 @@ class RieszNetBaseModule:
         ]
         self.optimizer = torch.optim.AdamW(optimizer_params, lr=1e-4)
 
+    def _split_into_train_test(self, data, num_folds = 10):
+        data.split_into_folds(num_folds)
+        train_data = data.get_folds(np.arange(start=2, stop=num_folds+1))
+        val_data = data.get_folds([1])
+        return train_data, val_data
+
+    def _format_data(self, data):
+        if isinstance(data, ATEDataset):
+            predictors = torch.concat((data.get_as_tensor("treatments"), data.get_as_tensor("covariates")), dim=1)
+            outcomes = data.get_as_tensor("outcomes")
+            return predictors, outcomes
+        else:
+            raise ValueError("Expected a Dataset class. got {}".format(type(data)))
+
     def train(self, data, patience=50):
         epochs = self.epochs
-        data.split_into_folds(10)
-        train_data = data.get_folds(np.arange(start=2, stop=11))
-        val_data = data.get_folds([1])
-
-        dat = torch.concat((train_data.get_as_tensor("treatments"), train_data.get_as_tensor("covariates")), dim=1)
-        outcomes = train_data.get_as_tensor("outcomes")
-
-        val_dat = torch.concat((val_data.get_as_tensor("treatments"), val_data.get_as_tensor("covariates")), dim=1)
-        val_outcomes = val_data.get_as_tensor("outcomes")
+        train_data, val_data = self._split_into_train_test(data)
+        predictors, outcomes = self._format_data(train_data)
+        val_predictors, val_outcomes = self._format_data(val_data)
 
         best_val_loss = float("inf")
         patience_counter = 0
@@ -129,7 +138,7 @@ class RieszNetBaseModule:
 
         for epoch in range(epochs):
             self.optimizer.zero_grad()
-            rr_output, rr_functional, outcome_prediction, epsilon = self.model(dat)
+            rr_output, rr_functional, outcome_prediction, epsilon = self.model(predictors)
             loss = self.criterion(rr_output, rr_functional, outcome_prediction, outcomes, epsilon)
             loss.backward()
             if epoch % 200 == 0:
@@ -137,7 +146,7 @@ class RieszNetBaseModule:
             self.optimizer.step()
 
             with torch.no_grad():
-                _, _, val_outcome_prediction, _ = self.model(val_dat)
+                _, _, val_outcome_prediction, _ = self.model(val_predictors)
                 val_loss = F.mse_loss(val_outcome_prediction, val_outcomes).item()
 
             if val_loss < best_val_loss:
@@ -153,12 +162,8 @@ class RieszNetBaseModule:
             self.model.load_state_dict(best_model_state)
 
     def tune_weight_decay(self, data):
-        data.split_into_folds(10)
-        train_data = data.get_folds(np.arange(start=2, stop=11))
-        test_data = data.get_folds([1])
-
-        test_dat = torch.concat((test_data.get_as_tensor("treatments"), test_data.get_as_tensor("covariates")), dim=1)
-        test_outcomes = test_data.get_as_tensor("outcomes")
+        train_data,test_data = self._split_into_train_test(data)
+        test_predictors, test_outcomes = self._format_data(test_data)
 
         weight_decay_grid = [0.0, 1e-4, 1e-3, 1e-2]
         test_losses = np.zeros(len(weight_decay_grid))
@@ -166,7 +171,7 @@ class RieszNetBaseModule:
         for i in range(len(weight_decay_grid)):
             self.set_model(weight_decay_grid[i])
             self.train(data=train_data)
-            rr_output, rr_functional, outcome_prediction, epsilon = self.model(test_dat)
+            rr_output, rr_functional, outcome_prediction, epsilon = self.model(test_predictors)
             test_losses[i] = F.mse_loss(outcome_prediction, test_outcomes).item()
 
         self.set_model(weight_decay_grid[np.argmin(test_losses)])
