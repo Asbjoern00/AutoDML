@@ -13,22 +13,7 @@ class DragonNetWrapper:
     @classmethod
     def create(cls, l2_lambda=1e-2):
         model = DragonNet()
-        decay = []
-        no_decay = []
-        for name, param in model.named_parameters():
-            if not param.requires_grad:
-                continue
-            if name == "epsilon":
-                no_decay.append(param)
-            else:
-                decay.append(param)
-        optimizer = torch.optim.Adam(
-            [
-                {"params": decay, "weight_decay": 1e-4},
-                {"params": no_decay, "weight_decay": 0.0},
-            ],
-            lr=1e-3,
-        )
+        optimizer = torch.optim.Adam(model.parameters())
         return cls(model, optimizer, l2_lambda)
 
     def train(self, data, epochs=500):
@@ -39,7 +24,15 @@ class DragonNetWrapper:
         for epoch in range(epochs):
             self.optimizer.zero_grad()
             output = self.model(covariates=covariates, treatments=treatments)
-            loss = self._dragon_net_loss(model_output=output, outcomes=outcomes, treatments=treatments)
+            l2_loss = (
+                sum(
+                    (param**2).sum()
+                    for name, param in self.model.named_parameters()
+                    if param.requires_grad and name != "epsilon"
+                )
+                * self.l2_lambda
+            )
+            loss = self._dragon_net_loss(model_output=output, outcomes=outcomes, treatments=treatments) + l2_loss
             loss.backward()
             self.optimizer.step()
 
