@@ -15,33 +15,27 @@ for i in range(1000):
     treatments = data.treatments[:, 0]
     outcomes = data.outcomes[:, 0]
     covariates = data.covariates
-    outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "max_depth": 3, "lambda": 3}
+    outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "max_depth": 5}
     outcome_model0 = xgb.train(
         outcome_params,
         xgb.DMatrix(covariates[treatments == 0, :], label=outcomes[treatments == 0]),
-        num_boost_round=1000,
+        num_boost_round=300,
         evals=[(xgb.DMatrix(covariates[treatments == 0, :], label=outcomes[treatments == 0]), "train")],
         verbose_eval=0,
     )
     outcome_model1 = xgb.train(
         outcome_params,
         xgb.DMatrix(covariates[treatments == 1, :], label=outcomes[treatments == 1]),
-        num_boost_round=1000,
+        num_boost_round=300,
         evals=[(xgb.DMatrix(covariates, label=outcomes), "train")],
         verbose_eval=0,
     )
 
-    treatment_params = {
-        "objective": "binary:logistic",
-        "eval_metric": "logloss",
-        "eta": 0.1,
-        "max_depth": 3,
-        "lambda": 3,
-    }
+    treatment_params = {"objective": "binary:logistic", "eval_metric": "logloss", "eta": 0.1, "max_depth": 5}
     treatment_model = xgb.train(
         treatment_params,
         xgb.DMatrix(covariates, label=treatments),
-        num_boost_round=1000,
+        num_boost_round=300,
         evals=[((xgb.DMatrix(covariates, label=treatments)), "train")],
         verbose_eval=0,
     )
