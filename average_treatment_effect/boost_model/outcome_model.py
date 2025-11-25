@@ -7,27 +7,41 @@ class OutcomeBooster:
         self.model0 = None
         self.model1 = None
 
-        self.params0 = {"objective": "reg:squarederror", "eval_metric": "rmse", "max_depth": 3, "eta": 0.1}
-        self.params1 = {"objective": "reg:squarederror", "eval_metric": "rmse", "max_depth": 3, "eta": 0.1}
+        self.params0 = {
+            "objective": "reg:squarederror",
+            "eval_metric": "rmse",
+            "max_depth": 3,
+            "eta": 0.1,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "num_parallel_tree": 5,
+        }
+        self.params1 = {
+            "objective": "reg:squarederror",
+            "eval_metric": "rmse",
+            "max_depth": 3,
+            "eta": 0.1,
+            "lambda": 9,
+        }
         if not params0 is None:
             self.params0.update(params0)
         if not params1 is None:
             self.params1.update(params1)
 
-    def fit(self, data, num_boost_round=300):
+    def fit(self, data, boost_round0=300, boost_round1=300):
         datasets = data.to_xgb_dataset()
         data0 = datasets["outcome_dataset_0"]
         data1 = datasets["outcome_dataset_1"]
 
-        self.model0 = xgb.train(self.params0, data0, num_boost_round=num_boost_round)
-        self.model1 = xgb.train(self.params1, data1, num_boost_round=num_boost_round)
+        self.model0 = xgb.train(self.params0, data0, num_boost_round=boost_round0)
+        self.model1 = xgb.train(self.params1, data1, num_boost_round=boost_round1)
 
-    def cross_validate(self, data, num_boost_round=300):
+    def cross_validate(self, data, boost_round0=275, boost_round1=40):
         datasets = data.to_xgb_dataset()
         data0 = datasets["outcome_dataset_0"]
         data1 = datasets["outcome_dataset_1"]
-        cv0 = xgb.cv(self.params0, data0, num_boost_round=num_boost_round, nfold=8, shuffle=True)
-        cv1 = xgb.cv(self.params1, data1, num_boost_round=num_boost_round, nfold=8, shuffle=True)
+        cv0 = xgb.cv(self.params0, data0, num_boost_round=boost_round0, nfold=5, shuffle=True)
+        cv1 = xgb.cv(self.params1, data1, num_boost_round=boost_round1, nfold=5, shuffle=True)
         rmse0 = np.asarray(cv0["test-rmse-mean"], dtype=float)
         rmse1 = np.asarray(cv1["test-rmse-mean"], dtype=float)
         return {
