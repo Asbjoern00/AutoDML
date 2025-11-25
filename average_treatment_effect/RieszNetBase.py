@@ -127,11 +127,11 @@ class RieszNetBaseModule:
         else:
             raise ValueError("Expected a Dataset class. got {}".format(type(data)))
 
-    def train(self, data, patience=50):
+    def train(self, data, patience=40, delta = 1e-3):
         epochs = self.epochs
-        train_data, val_data = self._split_into_train_test(data)
-        predictors, outcomes = self._format_data(train_data)
-        val_predictors, val_outcomes = self._format_data(val_data)
+        train_data, val_data = self._split_into_train_test(data = data)
+        predictors, outcomes = self._format_data(data = train_data)
+        val_predictors, val_outcomes = self._format_data(data = val_data)
 
         best_val_loss = float("inf")
         patience_counter = 0
@@ -142,22 +142,19 @@ class RieszNetBaseModule:
             rr_output, rr_functional, outcome_prediction, epsilon = self.model(predictors)
             loss = self.criterion(rr_output, rr_functional, outcome_prediction, outcomes, epsilon)
             loss.backward()
-            if epoch % 200 == 0:
-                print(epoch, loss.item())
             self.optimizer.step()
 
             with torch.no_grad():
-                _, _, val_outcome_prediction, _ = self.model(val_predictors)
-                val_loss = F.mse_loss(val_outcome_prediction, val_outcomes).item()
+                rr_output_val, rr_functional_val, outcome_prediction_val, val_epsilon = self.model(val_predictors)
+                val_loss = self.criterion(rr_output_val, rr_functional_val, outcome_prediction_val,val_outcomes, val_epsilon).item()
 
-            if val_loss < best_val_loss:
+            if delta+val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
                 best_model_state = self.model.state_dict()
             else:
                 patience_counter += 1
                 if patience_counter >= patience:
-                    print(f"Early stopping at epoch {epoch}")
                     break
         if best_model_state:
             self.model.load_state_dict(best_model_state)
