@@ -5,7 +5,7 @@ import xgboost as xgb
 class TreatmentBooster:
     def __init__(self, params=None):
         self.model = None
-        self.params = {"objective": "binary:logistic", "eval_metric": "logloss", "eta": 0.1, "max_depth": 3}
+        self.params = {"objective": "binary:logistic", "eval_metric": "logloss", "eta": 0.1, "max_depth": 5}
         if not params is None:
             self.params.update(params)
 
@@ -23,8 +23,8 @@ class TreatmentBooster:
         }
 
     def get_riesz_representer(self, data):
-        treatments = data.treatments[:,]
-        data = data.to_xgb_dataset()["treatment_dataset"]
+        treatments = data.treatments[:,0]
+        data = data.to_xgb_dataset()["full_covariates"]
         predictions = self.model.predict(data)
         predictions = np.clip(predictions, 1e-3, 1 - 1e-3)
         return treatments / predictions - (1 - treatments) / (1 - predictions)
