@@ -26,5 +26,4 @@ class TreatmentBooster:
         treatments = data.treatments[:,0]
         data = data.to_xgb_dataset()["full_covariates"]
         predictions = self.model.predict(data)
-        predictions = np.clip(predictions, 1e-3, 1 - 1e-3)
         return treatments / predictions - (1 - treatments) / (1 - predictions)
