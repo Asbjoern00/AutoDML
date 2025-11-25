@@ -16,9 +16,13 @@ class BaseRieszNet(nn.Module):
 
         self.rrOutput = nn.Linear(200, 1)
 
-        self.regression_layer1 = nn.Linear(200, 100)
-        self.regression_layer2 = nn.Linear(100, 100)
-        self.regression_output = nn.Linear(100, 1)
+        self.untreated_regression_layer1 = nn.Linear(200, 100)
+        self.untreated_regression_layer2 = nn.Linear(100, 100)
+        self.untreated_regression_output = nn.Linear(100, 1)
+
+        self.treated_regression_layer1 = nn.Linear(200, 100)
+        self.treated_regression_layer2 = nn.Linear(100, 100)
+        self.treated_regression_output = nn.Linear(100, 1)
 
         self.epsilon = nn.Parameter(torch.Tensor([0.0]))
 
@@ -48,13 +52,19 @@ class BaseRieszNet(nn.Module):
         z = self._forward_shared(data)
         rr_output = self.rrOutput(z)
 
-        y = self.regression_layer1(z)
-        y = F.elu(y)
-        y = self.regression_layer2(y)
-        y = F.elu(y)
-        y = self.regression_output(y)
+        y_treated = self.treated_regression_layer1(z)
+        y_treated = F.elu(y_treated)
+        y_treated = self.treated_regression_layer2(y_treated)
+        y_treated = F.elu(y_treated)
+        y_treated = self.treated_regression_output(y_treated)
 
-        outcome_prediction = y
+        y_untreated = self.untreated_regression_layer1(z)
+        y_untreated = F.elu(y_untreated)
+        y_untreated = self.untreated_regression_layer2(y_untreated)
+        y_untreated = F.elu(y_untreated)
+        y_untreated = self.treated_regression_output(y_untreated)
+
+        outcome_prediction = y_treated*data[:,[0]] + y_untreated*(1-data[:,[0]])
 
         return rr_output, rr_functional, outcome_prediction, self.epsilon
 
