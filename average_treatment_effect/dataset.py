@@ -41,8 +41,13 @@ class Dataset:
     def split_into_folds(self, folds):
         n_samples = self.treatments.shape[0]
         indices = np.arange(n_samples, dtype=int)
-        np.random.shuffle(indices)
-        self.folds = np.array_split(indices, folds)
+        treated_indices = indices[self.treatments[:, 0] == 1]
+        control_indices = indices[self.treatments[:, 0] == 0]
+        np.random.shuffle(treated_indices)
+        np.random.shuffle(control_indices)
+        treated_folds = np.array_split(treated_indices, folds)
+        control_folds = np.array_split(control_indices, folds)
+        self.folds = [np.concatenate([treated_folds[i], control_folds[i]]) for i in range(folds)]
 
     def get_folds(self, folds):
         if self.folds is None:
