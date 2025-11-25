@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def generate_beta_and_sigma(dim=26, beta_first=1.0, seed=None):
+def generate_beta_and_sigma(dim=5, beta_first=1.0, seed=None):
     if seed is not None:
         np.random.seed(seed)
 

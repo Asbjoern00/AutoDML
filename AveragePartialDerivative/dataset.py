@@ -14,8 +14,8 @@ class Dataset:
     avg_partial_derivative : Optional[np.float64] = None
 
     @classmethod
-    def from_sample(cls):
-        predictors, outcomes, avg_partial_derivative = sample_multivariate_normal()
+    def from_sample(cls, n=1000):
+        predictors, outcomes, avg_partial_derivative = sample_multivariate_normal(n=n)
         return cls(
             treatments=predictors[:, 0].reshape(-1, 1).astype(np.float32),
             outcomes=outcomes.reshape(-1, 1).astype(np.float32),
