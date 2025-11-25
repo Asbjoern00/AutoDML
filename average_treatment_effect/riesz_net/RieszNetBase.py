@@ -137,7 +137,17 @@ class RieszNetBaseModule:
         else:
             raise ValueError("Expected a Dataset class. got {}".format(type(data)))
 
-    def train(self, data, patience=40, delta = 1e-3):
+    def _regression_function(self, x):
+        return self.model(x)[2]
+
+    def predict(self, data):
+        with torch.no_grad():
+            predictors, outcomes = self._format_data(data)
+            functional_eval = self.model.functional(predictors, self._regression_function)
+            rr_output, _, outcome_prediction, _ = self.model(predictors)
+        return rr_output, functional_eval, outcome_prediction
+
+    def train(self, data, patience=40, delta=1e-3):
         epochs = self.epochs
         train_data, val_data = self._split_into_train_test(data = data)
         predictors, outcomes = self._format_data(data = train_data)
