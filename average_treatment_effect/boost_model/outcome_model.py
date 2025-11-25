@@ -7,14 +7,8 @@ class OutcomeBooster:
         self.model0 = None
         self.model1 = None
 
-        self.params0 = {"objective": "reg:squarederror", "eval_metric": "rmse", "max_depth": 4, "eta": 0.015}
-        self.params1 = {
-            "objective": "reg:squarederror",
-            "eval_metric": "rmse",
-            "max_depth": 4,
-            "eta": 0.03,
-            "lambda": 3,
-        }
+        self.params0 = {"objective": "reg:squarederror", "eval_metric": "rmse", "max_depth": 3, "eta": 0.1}
+        self.params1 = {"objective": "reg:squarederror", "eval_metric": "rmse", "max_depth": 3, "eta": 0.1}
         if not params0 is None:
             self.params0.update(params0)
         if not params1 is None:
@@ -32,8 +26,8 @@ class OutcomeBooster:
         datasets = data.to_xgb_dataset()
         data0 = datasets["outcome_dataset_0"]
         data1 = datasets["outcome_dataset_1"]
-        cv0 = xgb.cv(self.params0, data0, num_boost_round=num_boost_round, nfold=8)
-        cv1 = xgb.cv(self.params1, data1, num_boost_round=num_boost_round, nfold=8)
+        cv0 = xgb.cv(self.params0, data0, num_boost_round=num_boost_round, nfold=8, shuffle=True)
+        cv1 = xgb.cv(self.params1, data1, num_boost_round=num_boost_round, nfold=8, shuffle=True)
         rmse0 = np.asarray(cv0["test-rmse-mean"], dtype=float)
         rmse1 = np.asarray(cv1["test-rmse-mean"], dtype=float)
         return {
