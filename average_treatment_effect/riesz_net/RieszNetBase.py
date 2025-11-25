@@ -205,3 +205,46 @@ class RieszNetBaseModule:
         residual = outcomes - outcome_prediction
         one_step_estimate = plugin_estimate + torch.mean(residual * rr_output).item()
         return {"plugin": plugin_estimate, "one step estimate": one_step_estimate}
+
+    def fit(self, data, n_crossfit=1):
+        data.split_into_folds(n_crossfit)
+        splits = np.arange(1, n_crossfit + 1)
+        rr_output, functional_eval, outcome_prediction, outcomes = (
+            torch.zeros(data.outcomes.shape[0],1),
+            torch.zeros(data.outcomes.shape[0],1),
+            torch.zeros(data.outcomes.shape[0],1),
+            torch.zeros(data.outcomes.shape[0],1),
+        )
+
+        n_cum = 0
+        for l in range(n_crossfit):
+            self.set_model(weight_decay=self.weight_decay)  # reset parameters of model
+            if n_crossfit == 1:
+                train_data = data
+                test_data = data
+            else:
+                train_data = data.get_folds(np.delete(splits, l))
+                test_data = data.get_folds([splits[l]])
+
+            test_predictors, test_outcomes = self._format_data(data=test_data)
+            n_test = test_outcomes.shape[0]
+
+            self.train(data=train_data)
+            (
+                rr_output[n_cum : n_cum + n_test],
+                functional_eval[n_cum : n_cum + n_test],
+                outcome_prediction[n_cum : n_cum + n_test],
+            ) = self.predict(data=test_data)
+            outcomes[n_cum : n_cum + n_test] = test_outcomes
+            n_cum += n_test
+
+        plugin_estimate = torch.mean(functional_eval)
+        os_estimate = plugin_estimate + torch.mean((outcomes - outcome_prediction) * rr_output)
+        variance_estimate = torch.mean(
+            (functional_eval + (outcomes - outcome_prediction) * rr_output - plugin_estimate) ** 2
+        )
+        return {
+            "plugin": plugin_estimate.item(),
+            "one step estimate": os_estimate.item(),
+            "std_error": np.sqrt(variance_estimate.item()/n_cum),
+        }
