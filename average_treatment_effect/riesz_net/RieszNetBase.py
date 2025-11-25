@@ -16,6 +16,53 @@ class BaseRieszNet(nn.Module):
 
         self.rrOutput = nn.Linear(200, 1)
 
+        self.regression_layer1 = nn.Linear(200, 100)
+        self.regression_layer2 = nn.Linear(100, 100)
+        self.regression_output = nn.Linear(100, 1)
+
+        self.epsilon = nn.Parameter(torch.Tensor([0.0]))
+
+    def _forward_shared(self, data):
+        z = self.shared1(data)
+        z = F.elu(z)
+        z = self.shared2(z)
+        z = F.elu(z)
+        z = self.shared3(z)
+        z = F.elu(z)
+        return z
+
+    def _evaluate_riesz(self, data):
+        z = self._forward_shared(data)
+        return self.rrOutput(z)
+
+    def forward(self, data):
+        rr_functional = self.functional(data, self._evaluate_riesz)
+
+        z = self._forward_shared(data)
+        rr_output = self.rrOutput(z)
+
+        y = self.treated_regression_layer1(z)
+        y = F.elu(y)
+        y = self.treated_regression_layer2(y)
+        y = F.elu(y)
+        y = self.treated_regression_output(y)
+
+        outcome_prediction = y
+
+        return rr_output, rr_functional, outcome_prediction, self.epsilon
+
+
+class BiHeadedBaseRieszNet(nn.Module):
+    def __init__(self, functional):
+        super(BiHeadedBaseRieszNet, self).__init__()
+        self.functional = functional
+
+        self.shared1 = nn.Linear(26, 200)
+        self.shared2 = nn.Linear(200, 200)
+        self.shared3 = nn.Linear(200, 200)
+
+        self.rrOutput = nn.Linear(200, 1)
+
         self.untreated_regression_layer1 = nn.Linear(200, 100)
         self.untreated_regression_layer2 = nn.Linear(100, 100)
         self.untreated_regression_output = nn.Linear(100, 1)
@@ -95,20 +142,25 @@ def ate_functional(data, evaluator, treatment_index=0):
 
 class RieszNetBaseModule:
     def __init__(
-        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=1000
+        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=1000, biheaded = False
     ):
         self.optimizer = None
         self.model = None
         self.weight_decay = None
         self.functional = functional
-        self.set_model(weight_decay)
+        self.set_model(weight_decay, biheaded)
         self.criterion = BaseRieszNetLoss(
             rr_weight=rr_weight, tmle_weight=tmle_weight, outcome_mse_weight=outcome_mse_weight
         )
         self.epochs = epochs
+        self.biheaded = biheaded
 
     def set_model(self, weight_decay):
-        self.model = BaseRieszNet(self.functional)
+        if self.biheaded:
+            self.model = BiHeadedBaseRieszNet(self.functional)
+        else:
+            self.model = BaseRieszNet(self.functional)
+
         self.weight_decay = weight_decay
         optimizer_params = [
             {
