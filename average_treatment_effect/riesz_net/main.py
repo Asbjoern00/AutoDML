@@ -1,7 +1,9 @@
 import numpy as np
 
-from average_treatment_effect.riesz_net import RieszNetBase
 from average_treatment_effect import dataset
+from average_treatment_effect.riesz_net.RieszNetBase import BiHeadedBaseRieszNet, BaseRieszNet
+from average_treatment_effect.riesz_net import RieszNetBaseModule
+from average_treatment_effect.riesz_net import ATEFunctional
 
 K = 1000
 M = 1  # n crossfits
@@ -14,7 +16,7 @@ cvg = np.zeros(K)
 
 for i in range(K):
     data = dataset.Dataset.load_chernozhukov_replication(i + 1)
-    rr_module = RieszNetBase.RieszNetBaseModule(RieszNetBase.ate_functional)
+    rr_module = RieszNetBaseModule.RieszNetBaseModule(ATEFunctional.ate_functional, biheaded=True)
     fitted = rr_module.fit(data,n_crossfit=M)
     estimates_OS[i] = fitted["one step estimate"]
     ci_lower[i] = estimates_OS[i]-1.96*fitted["std_error"]
