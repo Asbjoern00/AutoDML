@@ -26,13 +26,6 @@ class BaseRieszNet(nn.Module):
 
         self.epsilon = nn.Parameter(torch.Tensor([0.0]))
 
-    def reset_parameters(self):
-        def weight_reset(m):
-            if isinstance(m, nn.Linear):
-                m.reset_parameters()
-
-        self.model.apply(weight_reset)
-
     def _forward_shared(self, data):
         z = self.shared1(data)
         z = F.elu(z)
@@ -70,7 +63,7 @@ class BaseRieszNet(nn.Module):
 
 
 class BaseRieszNetLoss(nn.Module):
-    def __init__(self, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight = 1.0):
+    def __init__(self, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0):
         super(BaseRieszNetLoss, self).__init__()
         self.rr_weight = rr_weight
         self.tmle_weight = tmle_weight
@@ -101,13 +94,17 @@ def ate_functional(data, evaluator, treatment_index=0):
 
 
 class RieszNetBaseModule:
-    def __init__(self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=5000):
+    def __init__(
+        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=600
+    ):
         self.optimizer = None
         self.model = None
         self.weight_decay = None
         self.functional = functional
         self.set_model(weight_decay)
-        self.criterion = BaseRieszNetLoss(rr_weight=rr_weight, tmle_weight=tmle_weight,outcome_mse_weight=outcome_mse_weight)
+        self.criterion = BaseRieszNetLoss(
+            rr_weight=rr_weight, tmle_weight=tmle_weight, outcome_mse_weight=outcome_mse_weight
+        )
         self.epochs = epochs
 
     def set_model(self, weight_decay):
@@ -121,10 +118,11 @@ class RieszNetBaseModule:
             {"params": [self.model.epsilon], "weight_decay": 0.0},
         ]
         self.optimizer = torch.optim.AdamW(optimizer_params, lr=1e-4)
+
     @staticmethod
-    def _split_into_train_test(data, num_folds = 10):
+    def _split_into_train_test(data, num_folds=10):
         data.split_into_folds(num_folds)
-        train_data = data.get_folds(np.arange(start=2, stop=num_folds+1))
+        train_data = data.get_folds(np.arange(start=2, stop=num_folds + 1))
         val_data = data.get_folds([1])
         return train_data, val_data
 
@@ -149,9 +147,9 @@ class RieszNetBaseModule:
 
     def train(self, data, patience=40, delta=1e-3):
         epochs = self.epochs
-        train_data, val_data = self._split_into_train_test(data = data)
-        predictors, outcomes = self._format_data(data = train_data)
-        val_predictors, val_outcomes = self._format_data(data = val_data)
+        train_data, val_data = self._split_into_train_test(data=data)
+        predictors, outcomes = self._format_data(data=train_data)
+        val_predictors, val_outcomes = self._format_data(data=val_data)
 
         best_val_loss = float("inf")
         patience_counter = 0
@@ -166,9 +164,11 @@ class RieszNetBaseModule:
 
             with torch.no_grad():
                 rr_output_val, rr_functional_val, outcome_prediction_val, val_epsilon = self.model(val_predictors)
-                val_loss = self.criterion(rr_output_val, rr_functional_val, outcome_prediction_val,val_outcomes, val_epsilon).item()
+                val_loss = self.criterion(
+                    rr_output_val, rr_functional_val, outcome_prediction_val, val_outcomes, val_epsilon
+                ).item()
 
-            if delta+val_loss < best_val_loss:
+            if delta + val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
                 best_model_state = self.model.state_dict()
@@ -180,7 +180,7 @@ class RieszNetBaseModule:
             self.model.load_state_dict(best_model_state)
 
     def tune_weight_decay(self, data):
-        train_data,test_data = self._split_into_train_test(data)
+        train_data, test_data = self._split_into_train_test(data)
         test_predictors, test_outcomes = self._format_data(test_data)
 
         weight_decay_grid = [0.0, 1e-4, 1e-3, 1e-2]
@@ -193,9 +193,6 @@ class RieszNetBaseModule:
             test_losses[i] = F.mse_loss(outcome_prediction, test_outcomes).item()
 
         self.set_model(weight_decay_grid[np.argmin(test_losses)])
-
-    def _regression_function(self, x):
-        return self.model(x)[2]
 
     def get_estimate(self, data):
         dat = torch.concat((data.get_as_tensor("treatments"), data.get_as_tensor("covariates")), dim=1)
