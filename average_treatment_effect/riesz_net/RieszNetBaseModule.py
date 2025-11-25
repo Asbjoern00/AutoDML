@@ -4,6 +4,7 @@ import numpy as np
 from average_treatment_effect.dataset import Dataset as ATEDataset
 from average_treatment_effect.riesz_net.RieszNetBase import BiHeadedBaseRieszNet, BaseRieszNet
 from average_treatment_effect.riesz_net.BaseRieszNetLoss import BaseRieszNetLoss
+from AveragePartialDerivative.dataset import Dataset as DerivativeDataset
 
 
 class RieszNetBaseModule:
@@ -46,7 +47,7 @@ class RieszNetBaseModule:
 
     @staticmethod
     def _format_data(data):
-        if isinstance(data, ATEDataset):
+        if isinstance(data, ATEDataset) or isinstance(data, DerivativeDataset):
             predictors = torch.concat((data.get_as_tensor("treatments"), data.get_as_tensor("covariates")), dim=1)
             outcomes = data.get_as_tensor("outcomes")
             return predictors, outcomes
@@ -57,10 +58,10 @@ class RieszNetBaseModule:
         return self.model(x)[2]
 
     def predict(self, data):
-        with torch.no_grad():
-            predictors, outcomes = self._format_data(data)
-            functional_eval = self.model.functional(predictors, self._regression_function)
-            rr_output, _, outcome_prediction, _ = self.model(predictors)
+        predictors, outcomes = self._format_data(data)
+        functional_eval = self.model.functional(predictors, self._regression_function)
+        rr_output, _, outcome_prediction, _ = self.model(predictors)
+
         return rr_output, functional_eval, outcome_prediction
 
     def train(self, data, patience=40, delta=1e-3):
@@ -80,11 +81,10 @@ class RieszNetBaseModule:
             loss.backward()
             self.optimizer.step()
 
-            with torch.no_grad():
-                rr_output_val, rr_functional_val, outcome_prediction_val, val_epsilon = self.model(val_predictors)
-                val_loss = self.criterion(
-                    rr_output_val, rr_functional_val, outcome_prediction_val, val_outcomes, val_epsilon
-                ).item()
+            rr_output_val, rr_functional_val, outcome_prediction_val, val_epsilon = self.model(val_predictors)
+            val_loss = self.criterion(
+                rr_output_val, rr_functional_val, outcome_prediction_val, val_outcomes, val_epsilon
+            ).item()
 
             if delta + val_loss < best_val_loss:
                 best_val_loss = val_loss

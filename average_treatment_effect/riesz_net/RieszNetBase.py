@@ -40,11 +40,11 @@ class BaseRieszNet(nn.Module):
         z = self._forward_shared(data)
         rr_output = self.rrOutput(z)
 
-        y = self.treated_regression_layer1(z)
+        y = self.regression_layer1(z)
         y = F.elu(y)
-        y = self.treated_regression_layer2(y)
+        y = self.regression_layer2(y)
         y = F.elu(y)
-        y = self.treated_regression_output(y)
+        y = self.regression_output(y)
 
         outcome_prediction = y
 
