@@ -13,17 +13,17 @@ for i in range(1000):
     truths.append(truth)
 
     outcome_model = OutcomeBooster()
-    outcome_model.fit(data, num_boost_round=500)
+    outcome_model.fit(data, num_boost_round=300)
     plugin = outcome_model.get_plugin_estimate(data)
     residuals = outcome_model.get_residuals(data)
 
     treatment_model = TreatmentBooster()
-    treatment_model.fit(data, num_boost_round=500)
+    treatment_model.fit(data, num_boost_round=300)
     riesz_representer = treatment_model.get_riesz_representer(data)
 
     correction = np.mean(residuals * riesz_representer)
     dr_est = plugin + correction
-    print(plugin, dr_est, truth)
+    #print(plugin, dr_est, truth)
     ests.append(plugin)
     MAE = sum(np.abs(np.array(truths) - np.array(ests))) / len(truths)
-    print("MAE:", MAE)
+    print('Iteration:', i+1 ,"MAE:", MAE)

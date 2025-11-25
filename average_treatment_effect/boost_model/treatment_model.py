@@ -5,7 +5,7 @@ import xgboost as xgb
 class TreatmentBooster:
     def __init__(self, params=None):
         self.model = None
-        self.params = {"objective": "binary:logistic", "eval_metric": "logloss", "eta": 0.05, "max_depth": 4}
+        self.params = {"objective": "binary:logistic", "eval_metric": "logloss", "eta": 0.1, "max_depth": 3}
         if not params is None:
             self.params.update(params)
 
