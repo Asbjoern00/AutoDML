@@ -12,7 +12,7 @@ truths = []
 
 folds = 10
 
-for i in range(100):
+for i in range(1000):
     data = Dataset.load_chernozhukov_replication(i + 1)
     data.split_into_folds(folds)
     truth = data.get_average_treatment_effect()
