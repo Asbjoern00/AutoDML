@@ -60,17 +60,17 @@ class BaseRieszNet(nn.Module):
 
 
 class BaseRieszNetLoss(nn.Module):
-    def __init__(self, rr_weight=0.1, tmle_weight=0.45):
+    def __init__(self, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight = 1.0):
         super(BaseRieszNetLoss, self).__init__()
         self.rr_weight = rr_weight
         self.tmle_weight = tmle_weight
+        self.outcome_mse_weight = outcome_mse_weight
 
     def forward(self, rr_output, rr_functional, outcome_prediction, outcome, epsilon):
         mse = F.mse_loss(outcome_prediction, outcome)
         tmle_loss = F.mse_loss(outcome - outcome_prediction, epsilon * rr_output)
         rr_loss = torch.mean(rr_output**2) - 2 * torch.mean(rr_functional)
-        loss = tmle_loss * self.tmle_weight + rr_loss * self.rr_weight + mse * (1 - self.tmle_weight - self.rr_weight)
-        # print(rr_loss, tmle_loss, mse)
+        loss = tmle_loss * self.tmle_weight + rr_loss * self.rr_weight + mse * self.outcome_mse_weight
         return loss
 
 
@@ -91,13 +91,13 @@ def ate_functional(data, evaluator, treatment_index=0):
 
 
 class RieszNetBaseModule:
-    def __init__(self, functional, weight_decay=1e-3, rr_weight=0.1, tmle_weight=0.33, epochs=4000):
+    def __init__(self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=5000):
         self.optimizer = None
         self.model = None
         self.weight_decay = None
         self.functional = functional
         self.set_model(weight_decay)
-        self.criterion = BaseRieszNetLoss(rr_weight=rr_weight, tmle_weight=tmle_weight)
+        self.criterion = BaseRieszNetLoss(rr_weight=rr_weight, tmle_weight=tmle_weight,outcome_mse_weight=outcome_mse_weight)
         self.epochs = epochs
 
     def set_model(self, weight_decay):
