@@ -20,7 +20,7 @@ class DragonNet(nn.Module):
         q0 = self.q0_layers(shared_state)
         q1 = self.q1_layers(shared_state)
         base_outcome_prediction = (1 - treatments) * q0 + treatments * q1
-        q0 = q0 + self.epsilon / (1 - treatment_prediction)
+        q0 = q0 - self.epsilon / (1 - treatment_prediction)
         q1 = q1 + self.epsilon / treatment_prediction
         targeted_outcome_prediction = (1 - treatments) * q0 + treatments * q1
         return {

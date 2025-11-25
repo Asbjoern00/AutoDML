@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import xgboost as xgb
 import numpy as np
 from typing import Optional, List
 import torch
@@ -55,3 +56,30 @@ class Dataset:
             noiseless_treated_outcomes=self.noiseless_treated_outcomes[selected_indices],
             covariates=self.covariates[selected_indices],
         )
+
+    def to_xgb_dataset(self):
+        treatments = self.treatments[:, 0]
+        outcome_dataset_0 = xgb.DMatrix(self.covariates[treatments == 0, :], label=self.outcomes[treatments == 0, 0])
+        outcome_dataset_1 = xgb.DMatrix(self.covariates[treatments == 1, :], label=self.outcomes[treatments == 1, 0])
+        treatment_dataset = xgb.DMatrix(self.covariates, label=self.treatments)
+        full_covariates = xgb.DMatrix(self.covariates)
+        return {
+            "outcome_dataset_0": outcome_dataset_0,
+            "outcome_dataset_1": outcome_dataset_1,
+            "treatment_dataset": treatment_dataset,
+            "full_covariates": full_covariates,
+        }
+
+    def to_riesz_xgb_dataset(self):
+        treatments = np.concatenate(
+            [self.treatments, np.zeros_like(self.treatments), np.ones_like(self.treatments)], axis=0
+        )
+        covariates = np.concatenate([self.covariates] * 3, axis=0)
+        label = np.concatenate(
+            [2 + np.zeros_like(self.treatments), np.zeros_like(self.treatments), 1 + np.zeros_like(self.treatments)],
+            axis=0,
+        )
+        return {
+            "training_data": xgb.DMatrix(np.concatenate([treatments, covariates], axis=1), label=label),
+            "test_data": xgb.DMatrix(np.concatenate([self.treatments, self.covariates], axis=1)),
+        }
