@@ -111,14 +111,15 @@ class RieszNetBaseModule:
             {"params": [self.model.epsilon], "weight_decay": 0.0},
         ]
         self.optimizer = torch.optim.AdamW(optimizer_params, lr=1e-4)
-
-    def _split_into_train_test(self, data, num_folds = 10):
+    @staticmethod
+    def _split_into_train_test(data, num_folds = 10):
         data.split_into_folds(num_folds)
         train_data = data.get_folds(np.arange(start=2, stop=num_folds+1))
         val_data = data.get_folds([1])
         return train_data, val_data
 
-    def _format_data(self, data):
+    @staticmethod
+    def _format_data(data):
         if isinstance(data, ATEDataset):
             predictors = torch.concat((data.get_as_tensor("treatments"), data.get_as_tensor("covariates")), dim=1)
             outcomes = data.get_as_tensor("outcomes")
