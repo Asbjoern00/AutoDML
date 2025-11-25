@@ -55,7 +55,7 @@ class BaseRieszNet(nn.Module):
         y_untreated = F.elu(y_untreated)
         y_untreated = self.untreated_regression_layer2(y_untreated)
         y_untreated = F.elu(y_untreated)
-        y_untreated = self.treated_regression_output(y_untreated)
+        y_untreated = self.untreated_regression_output(y_untreated)
 
         outcome_prediction = y_treated*data[:,[0]] + y_untreated*(1-data[:,[0]])
 
@@ -95,7 +95,7 @@ def ate_functional(data, evaluator, treatment_index=0):
 
 class RieszNetBaseModule:
     def __init__(
-        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=600
+        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=1000
     ):
         self.optimizer = None
         self.model = None
