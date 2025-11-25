@@ -9,13 +9,15 @@ from AveragePartialDerivative.dataset import Dataset as DerivativeDataset
 
 class RieszNetBaseModule:
     def __init__(
-        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=1000, biheaded = False
+        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=2500, biheaded = False,
+            in_features = 26
     ):
         self.optimizer = None
         self.model = None
         self.weight_decay = None
         self.biheaded = biheaded
         self.functional = functional
+        self.in_features = in_features
         self.set_model(weight_decay)
         self.criterion = BaseRieszNetLoss(
             rr_weight=rr_weight, tmle_weight=tmle_weight, outcome_mse_weight=outcome_mse_weight
@@ -24,9 +26,9 @@ class RieszNetBaseModule:
 
     def set_model(self, weight_decay):
         if self.biheaded:
-            self.model = BiHeadedBaseRieszNet(self.functional)
+            self.model = BiHeadedBaseRieszNet(self.functional,self.in_features)
         else:
-            self.model = BaseRieszNet(self.functional)
+            self.model = BaseRieszNet(self.functional,self.in_features)
 
         self.weight_decay = weight_decay
         optimizer_params = [

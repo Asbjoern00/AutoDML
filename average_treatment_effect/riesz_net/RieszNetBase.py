@@ -5,11 +5,11 @@ import torch.nn.functional as F
 
 
 class BaseRieszNet(nn.Module):
-    def __init__(self, functional):
+    def __init__(self, functional,in_features):
         super(BaseRieszNet, self).__init__()
         self.functional = functional
 
-        self.shared1 = nn.Linear(26, 200)
+        self.shared1 = nn.Linear(in_features, 200)
         self.shared2 = nn.Linear(200, 200)
         self.shared3 = nn.Linear(200, 200)
 
@@ -52,11 +52,11 @@ class BaseRieszNet(nn.Module):
 
 
 class BiHeadedBaseRieszNet(nn.Module):
-    def __init__(self, functional):
+    def __init__(self, functional, in_features):
         super(BiHeadedBaseRieszNet, self).__init__()
         self.functional = functional
 
-        self.shared1 = nn.Linear(26, 200)
+        self.shared1 = nn.Linear(in_features, 200)
         self.shared2 = nn.Linear(200, 200)
         self.shared3 = nn.Linear(200, 200)
 
