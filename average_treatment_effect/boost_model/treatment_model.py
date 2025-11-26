@@ -15,7 +15,7 @@ class TreatmentBooster:
         if not params is None:
             self.params.update(params)
 
-    def fit(self, data, num_boost_round=300):
+    def fit(self, data, num_boost_round=100):
         data = data.to_xgb_dataset()["treatment_dataset"]
         self.model = xgb.train(self.params, data, num_boost_round=num_boost_round)
 

@@ -28,7 +28,7 @@ class OutcomeBooster:
         if not params1 is None:
             self.params1.update(params1)
 
-    def fit(self, data, boost_round0=300, boost_round1=300):
+    def fit(self, data, boost_round0=275, boost_round1=140):
         datasets = data.to_xgb_dataset()
         data0 = datasets["outcome_dataset_0"]
         data1 = datasets["outcome_dataset_1"]

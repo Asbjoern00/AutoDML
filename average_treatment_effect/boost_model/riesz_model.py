@@ -17,7 +17,7 @@ class RieszBooster:
             self.params.update(params)
         self.hess = hess
 
-    def fit(self, data, num_boost_round=100):
+    def fit(self, data, num_boost_round=80):
         data = data.to_riesz_xgb_dataset()["training_data"]
         self.model = xgb.train(
             self.params,
