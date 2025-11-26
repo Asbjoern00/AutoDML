@@ -9,9 +9,6 @@ class RieszBooster:
             "lambda": 33,
             "eta": 0.1,
             "max_depth": 2,
-            #"subsample": 0.9,
-            #"colsample_bytree": 0.9,
-            #"num_parallel_tree": 5,
         }
         if params is not None:
             self.params.update(params)
