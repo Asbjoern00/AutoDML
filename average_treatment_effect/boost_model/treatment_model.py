@@ -10,12 +10,12 @@ class TreatmentBooster:
             "eval_metric": "logloss",
             "eta": 0.1,
             "max_depth": 2,
-            "lambda": 20,
+            "lambda": 15,
         }
         if not params is None:
             self.params.update(params)
 
-    def fit(self, data, num_boost_round=100):
+    def fit(self, data, num_boost_round=77):
         data = data.to_xgb_dataset()["treatment_dataset"]
         self.model = xgb.train(self.params, data, num_boost_round=num_boost_round)
 

@@ -7,25 +7,14 @@ class OutcomeBooster:
         self.model0 = None
         self.model1 = None
 
-        self.params0 = {
-            "objective": "reg:squarederror",
-            "eval_metric": "rmse",
-            "max_depth": 3,
-            "eta": 0.1,
-        }
-        self.params1 = {
-            "objective": "reg:squarederror",
-            "eval_metric": "rmse",
-            "max_depth": 3,
-            "eta": 0.1,
-            "lambda": 9,
-        }
+        self.params0 = {"objective": "reg:squarederror", "eval_metric": "rmse", "max_depth": 3, "eta": 0.1, "lambda": 3}
+        self.params1 = {"objective": "reg:squarederror", "eval_metric": "rmse", "max_depth": 3, "eta": 0.1, "lambda": 9}
         if not params0 is None:
             self.params0.update(params0)
         if not params1 is None:
             self.params1.update(params1)
 
-    def fit(self, data, boost_round0=275, boost_round1=140):
+    def fit(self, data, boost_round0=150, boost_round1=50):
         datasets = data.to_xgb_dataset()
         data0 = datasets["outcome_dataset_0"]
         data1 = datasets["outcome_dataset_1"]
