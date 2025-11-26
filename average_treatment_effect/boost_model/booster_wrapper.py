@@ -31,3 +31,8 @@ class BoosterWrapper:
         riesz_rep = self.riesz_rep_model.get_riesz_representer(data)
         correction = np.mean(residuals * riesz_rep)
         return functional + correction
+
+    def get_variance(self, data):
+        ate_contributuons = self.get_ate_contributions(data)
+        ate = self.get_ate(data)
+        return np.mean((ate_contributuons - ate) ** 2)
