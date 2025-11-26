@@ -9,6 +9,8 @@ base_estimates = []
 riesz_estimates = []
 base_coverages = []
 riesz_coverages = []
+riesz_stds = []
+base_stds = []
 truths = []
 
 folds = 10
@@ -42,21 +44,32 @@ for i in range(1000):
         riesz_var += riesz_booster.get_variance(data) * n_in_fold / n_total
 
     base_estimates.append(dr_est_base)
-    lower = dr_est_base - np.sqrt(base_var / n_total) * 1.96
-    upper = dr_est_base + np.sqrt(base_var / n_total) * 1.96
+    base_std = np.sqrt(base_var / n_total)
+    base_stds.append(base_std)
+    lower = dr_est_base - base_std * 1.96
+    upper = dr_est_base + base_std * 1.96
     base_coverages.append((truth >= lower) and (truth <= upper))
 
     riesz_estimates.append(dr_est_riesz)
-    lower = dr_est_riesz - np.sqrt(riesz_var / n_total) * 1.96
-    upper = dr_est_riesz + np.sqrt(riesz_var / n_total) * 1.96
+    riesz_std = np.sqrt(riesz_var / n_total)
+    riesz_stds.append(riesz_std)
+    lower = dr_est_riesz - riesz_std * 1.96
+    upper = dr_est_riesz + riesz_std * 1.96
     riesz_coverages.append((truth >= lower) and (truth <= upper))
 
-    base_mae = sum(np.abs(np.array(truths) - np.array(base_estimates))) / len(truths)
+    mae_base = sum(np.abs(np.array(truths) - np.array(base_estimates))) / len(truths)
     base_coverage = sum(base_coverages) / len(base_coverages)
     riesz_mae = sum(np.abs(np.array(truths) - np.array(riesz_estimates))) / len(truths)
     riesz_coverage = sum(riesz_coverages) / len(riesz_coverages)
 
-    print(dr_est_base, dr_est_riesz, truth)
+
     print("Iteration:", i + 1)
-    print("Base MAE:", base_mae, "Riesz MAE:", riesz_mae)
+    print(dr_est_base, dr_est_riesz, truth)
+    print("Base MAE:", mae_base, "Riesz MAE:", riesz_mae, "Plugin MAE")
     print("Base Coverage:", base_coverage, "Riesz Coverage:", riesz_coverage)
+
+base_errors = [(est-truth)/se for est, truth, se in zip(base_estimates, truths, base_stds)]
+riesz_errors = [(est-truth)/se for est, truth, se in zip(riesz_estimates, truths, riesz_stds)]
+
+#np.savetxt("average_treatment_effect/boost_model/results/base_output.csv", np.array(base_errors), delimiter=",")
+#np.savetxt("average_treatment_effect/boost_model/results/riesz_output.csv", np.array(riesz_errors), delimiter=",")

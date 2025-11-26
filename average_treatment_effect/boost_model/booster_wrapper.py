@@ -23,9 +23,9 @@ class BoosterWrapper:
         self.riesz_rep_model.fit(data)
 
     def get_ate(self, data):
-        return np.mean(self.get_ate_contributions(data))
+        return np.mean(self.get_individual_treatment_effects(data))
 
-    def get_ate_contributions(self, data):
+    def get_individual_treatment_effects(self, data):
         functional = self.outcome_model.get_functional(data)
         residuals = self.outcome_model.get_residuals(data)
         riesz_rep = self.riesz_rep_model.get_riesz_representer(data)
@@ -33,9 +33,9 @@ class BoosterWrapper:
         return functional + correction
 
     def get_variance(self, data):
-        ate_contributuons = self.get_ate_contributions(data)
+        individual_effects = self.get_individual_treatment_effects(data)
         ate = self.get_ate(data)
-        return np.mean((ate_contributuons - ate) ** 2)
+        return np.mean((individual_effects - ate) ** 2)
 
     def get_plugin_ate(self, data):
         functional = self.outcome_model.get_functional(data)
