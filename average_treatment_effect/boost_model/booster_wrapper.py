@@ -36,3 +36,12 @@ class BoosterWrapper:
         ate_contributuons = self.get_ate_contributions(data)
         ate = self.get_ate(data)
         return np.mean((ate_contributuons - ate) ** 2)
+
+    def get_plugin_ate(self, data):
+        functional = self.outcome_model.get_functional(data)
+        return np.mean(functional)
+
+    def get_plugin_variance(self, data):
+        functional = self.outcome_model.get_functional(data)
+        plugin = self.get_plugin_ate(data)
+        return np.mean((functional - plugin) ** 2)
