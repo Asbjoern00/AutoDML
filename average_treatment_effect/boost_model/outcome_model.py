@@ -12,9 +12,6 @@ class OutcomeBooster:
             "eval_metric": "rmse",
             "max_depth": 3,
             "eta": 0.1,
-            "subsample": 0.8,
-            "colsample_bytree": 0.8,
-            "num_parallel_tree": 5,
         }
         self.params1 = {
             "objective": "reg:squarederror",
