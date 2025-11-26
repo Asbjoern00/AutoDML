@@ -14,6 +14,7 @@ truths = []
 
 for i in range(1000):
     data = Dataset.load_chernozhukov_replication(i + 1)
+    n_total = data.treatments.shape[0]
     truth = data.get_average_treatment_effect()
     truths.append(truth)
     dr_est_base = 0
@@ -32,13 +33,13 @@ for i in range(1000):
     riesz_var = riesz_booster.get_variance(data)
 
     base_estimates.append(dr_est_base)
-    lower = dr_est_base - np.sqrt(base_var) * 1.96
-    upper = dr_est_base + np.sqrt(base_var) * 1.96
+    lower = dr_est_base - np.sqrt(base_var / n_total) * 1.96
+    upper = dr_est_base + np.sqrt(base_var / n_total) * 1.96
     base_coverages.append((truth >= lower) and (truth <= upper))
 
     riesz_estimates.append(dr_est_riesz)
-    lower = dr_est_riesz - np.sqrt(riesz_var) * 1.96
-    upper = dr_est_riesz + np.sqrt(riesz_var) * 1.96
+    lower = dr_est_riesz - np.sqrt(riesz_var / n_total) * 1.96
+    upper = dr_est_riesz + np.sqrt(riesz_var / n_total) * 1.96
     riesz_coverages.append((truth >= lower) and (truth <= upper))
 
     mae_base = sum(np.abs(np.array(truths) - np.array(base_estimates))) / len(truths)
