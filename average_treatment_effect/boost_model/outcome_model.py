@@ -52,10 +52,13 @@ class OutcomeBooster:
         }
 
     def get_plugin_estimate(self, data):
+        return np.mean(self.get_functional(data))
+
+    def get_functional(self, data):
         data = data.to_xgb_dataset()["full_covariates"]
         Y0 = self.model0.predict(data)
         Y1 = self.model1.predict(data)
-        return np.mean(Y1 - Y0)
+        return Y1 - Y0
 
     def get_residuals(self, data):
         treatments = data.treatments[:, 0]

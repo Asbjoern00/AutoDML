@@ -23,8 +23,11 @@ class BoosterWrapper:
         self.riesz_rep_model.fit(data)
 
     def get_ate(self, data):
-        plugin = self.outcome_model.get_plugin_estimate(data)
+        return np.mean(self.get_ate_contributions(data))
+
+    def get_ate_contributions(self, data):
+        functional = self.outcome_model.get_functional(data)
         residuals = self.outcome_model.get_residuals(data)
         riesz_rep = self.riesz_rep_model.get_riesz_representer(data)
         correction = np.mean(residuals * riesz_rep)
-        return plugin + correction
+        return functional + correction
