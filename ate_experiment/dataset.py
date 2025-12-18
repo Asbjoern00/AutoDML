@@ -1,2 +1,9 @@
+import numpy as np
+
+
 class Dataset:
-    pass
+    def __init__(self, raw_data: np.ndarray, outcome_column: int, treatment_column: int):
+        self.raw_data = raw_data
+        self.outcome_column = outcome_column
+        self.treatment_column = treatment_column
+        self.covariate_columns = [i for i in range(raw_data.shape[1]) if i not in [outcome_column, treatment_column]]
