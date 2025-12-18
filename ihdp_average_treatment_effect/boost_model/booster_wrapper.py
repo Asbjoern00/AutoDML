@@ -1,8 +1,8 @@
 import numpy as np
 
-from average_treatment_effect.boost_model.outcome_model import OutcomeBooster
-from average_treatment_effect.boost_model.treatment_model import TreatmentBooster
-from average_treatment_effect.boost_model.riesz_model import RieszBooster
+from ihdp_average_treatment_effect.boost_model.outcome_model import OutcomeBooster
+from ihdp_average_treatment_effect.boost_model.treatment_model import TreatmentBooster
+from ihdp_average_treatment_effect.boost_model.riesz_model import RieszBooster
 
 
 class BoosterWrapper:

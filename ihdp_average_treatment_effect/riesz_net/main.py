@@ -1,7 +1,7 @@
 import numpy as np
 
-from average_treatment_effect.riesz_net import RieszNetBase
-from average_treatment_effect import dataset
+from ihdp_average_treatment_effect.riesz_net import RieszNetBase
+from ihdp_average_treatment_effect import dataset
 
 K = 1000
 M = 1  # n crossfits

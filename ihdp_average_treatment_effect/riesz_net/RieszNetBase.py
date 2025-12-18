@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from average_treatment_effect.dataset import Dataset as ATEDataset
+from ihdp_average_treatment_effect.dataset import Dataset as ATEDataset
 
 
 class BaseRieszNet(nn.Module):
