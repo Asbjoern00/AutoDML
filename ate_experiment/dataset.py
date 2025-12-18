@@ -9,6 +9,16 @@ class Dataset:
         covariate_columns = [i for i in range(raw_data.shape[1]) if i not in [outcome_column, treatment_column]]
         self.covariate_columns = covariate_columns
 
+    @classmethod
+    def simulate_dataset(cls, size, number_of_covariates):
+        covariates = np.random.uniform(low=-1, high=1, size=(size, number_of_covariates))
+        propensities = cls.propensity_score(covariates)
+        treatments = np.random.binomial(1, propensities, size=size)
+        noise = np.random.normal(loc=0, scale=1, size=size)
+        outcomes = cls.outcome_regression(covariates, treatments) + noise
+        data = np.concatenate([outcomes.reshape(-1, 1), treatments.reshape(-1, 1), covariates], axis=1)
+        return cls(raw_data=data, outcome_column=0, treatment_column=1)
+
     @staticmethod
     def outcome_regression(covariates, treatments):
         treated_regression = covariates[:, 0] ** 2 + covariates[:, 2] + covariates[:, 3]
@@ -21,11 +31,11 @@ class Dataset:
         return 1 / (1 + np.exp(-logit))
 
     @property
-    def outcome(self):
+    def outcomes(self):
         return self.raw_data[:, self.outcome_column]
 
     @property
-    def treatment(self):
+    def treatments(self):
         return self.raw_data[:, self.treatment_column]
 
     @property
