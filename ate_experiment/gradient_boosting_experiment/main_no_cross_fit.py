@@ -11,14 +11,14 @@ truth = 2.121539888279284
 plug_ins = []
 propensity_ests = []
 riesz_ests = []
-propensity_vars = []
-riesz_vars = []
 riesz_covers = []
 propensity_covers = []
 riesz_lowers = []
 riesz_uppers = []
 propensity_lowers = []
 propensity_uppers = []
+riesz_vars = []
+propensity_vars = []
 
 iterations = 1000
 number_of_samples = 1000
@@ -91,15 +91,19 @@ for i in range(iterations):
     riesz_lowers.append(riesz_lower)
     propensity_lowers.append(propensity_lower)
     propensity_uppers.append(propensity_upper)
+    riesz_vars.append(riesz_var)
+    propensity_vars.append(propensity_var)
 
 
 headers = [
     "truth",
     "plugin_estimate",
     "propensity_estimate",
+    "propensity_variance",
     "propensity_lower",
     "propensity_upper",
     "riesz_estimate",
+    "riesz_variance",
     "riesz_lower",
     "riesz_upper",
 ]
@@ -109,9 +113,11 @@ results = np.array(
         [truth for _ in range(iterations)],
         plug_ins,
         propensity_ests,
+        propensity_vars,
         propensity_lowers,
         propensity_uppers,
         riesz_ests,
+        riesz_vars,
         riesz_lowers,
         riesz_uppers,
     ]
