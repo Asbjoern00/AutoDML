@@ -1,14 +1,9 @@
-from sklearn.linear_model import LassoCV, Lasso
 from sklearn.preprocessing import PolynomialFeatures, SplineTransformer, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from average_treatment_effect.dataset import Dataset
-from sklearn.ensemble import RandomForestRegressor
 import numpy as np
 
-
-
-def md_lasso_cd_paper(G, M, rL, D=None, rho_init=None, max_iter=5000, tol=1e-8, diag_eps=1e-12, verbose=False):
+def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=5000, tol=1e-3):
     """
     Minimum-distance LASSO by coordinate descent implementing the
     update from the paper (objective scaled by 1/2):
@@ -43,9 +38,7 @@ def md_lasso_cd_paper(G, M, rL, D=None, rho_init=None, max_iter=5000, tol=1e-8, 
     info : dict
         Diagnostics: {'n_iter': int, 'converged': bool, 'final_obj': float}
     """
-    G = np.asarray(G, dtype=float)
-    M = np.asarray(M, dtype=float)
-    p = M.size
+    p = M.shape[0]
 
     if D is None:
         D = np.ones(p, dtype=float)
@@ -57,68 +50,42 @@ def md_lasso_cd_paper(G, M, rL, D=None, rho_init=None, max_iter=5000, tol=1e-8, 
     else:
         rho = np.array(rho_init, dtype=float)
 
-    # Precompute diagonal and check for tiny diagonals
-    G_diag = np.diag(G).copy()
-    small_diag = np.abs(G_diag) < diag_eps
-    if np.any(small_diag):
-        # don't change G itself; use eps'd values for division only
-        G_diag_safe = G_diag.copy()
-        G_diag_safe[small_diag] = diag_eps
-    else:
-        G_diag_safe = G_diag
-
-    # Maintain current residual r = M - G @ rho  (so pi_j = M_j - sum_{k != j} rho_k G_jk = r_j + G_jj * rho_j)
-    # But it's convenient to maintain "Grho = G @ rho" and compute pi_j = M[j] - (Grho[j] - G[j,j]*rho[j])
-    Grho = G.dot(rho)
+    z = np.diag(G).copy()
 
     for it in range(1, max_iter + 1):
         rho_old = rho.copy()
-
-        # One full coordinate sweep (j = 0..p-1)
+        change = 0.0
         for j in range(p):
-            # compute pi_j = M_j - sum_{k != j} rho_k G_jk
-            # sum_{k != j} rho_k G_jk = (Grho[j] - G[j,j] * rho[j])
-            pi_j = M[j] - (Grho[j] - G_diag[j] * rho[j])
+            Grho = G @ rho
+            pi = M - (Grho - z * rho)
+            pi_j = pi[j]
 
-            if j == p-1:
-                new_rj = pi_j / G_diag_safe[j] # no penalization consider if this is the right thing to do
+            if j == p - 1:
+                new_rj = pi_j / z[j]  # no penalization consider if this is the right thing to do
 
             else:
                 thresh = D[j] * rL
 
                 if pi_j < -thresh:
-                    new_rj = (pi_j + thresh) / G_diag_safe[j]
+                    new_rj = (pi_j + thresh) / z[j]
                 elif pi_j > thresh:
-                    new_rj = (pi_j - thresh) / G_diag_safe[j]
+                    new_rj = (pi_j - thresh) / z[j]
                 else:
                     new_rj = 0.0
 
-            # If diagonal was tiny and we adjusted, this will avoid huge jumps.
-            # Update rho and incremental Grho := Grho + G[:, j] * (new_rj - rho[j])
             delta = new_rj - rho[j]
             if delta != 0.0:
-                Grho += G[:, j] * delta
+                change = np.max([change,np.abs(rho_old[j] - new_rj)])
                 rho[j] = new_rj
+        #print(it,change*np.max(rho))
 
-        # convergence check
-        change = np.linalg.norm(rho - rho_old)
-        if verbose and (it % 50 == 0 or change < tol):
-            # compute objective value for diagnostics
-            obj = 0.5 * rho.dot(G.dot(rho)) - rho.dot(M) + rL * np.sum(np.abs(D * rho))
-            print(f"iter {it:4d}  change {change:.3e}  obj {obj:.6e}")
-        if change < tol:
+        if change*np.max(rho) < tol: #Sklearn convergence metrix
             converged = True
             break
     else:
         converged = False
-        it = max_iter
 
-    final_obj = 0.5 * rho.dot(G.dot(rho)) - rho.dot(M) + rL * np.sum(np.abs(D * rho))
-    info = {"n_iter": it, "converged": converged, "final_obj": final_obj}
-    return rho, info
-
-
-# dat = Dataset.load_chernozhukov_replication(1)
+    return rho
 
 
 class CovariateExpander:
@@ -162,7 +129,7 @@ class CovariateExpander:
                     "spline",
                     Pipeline(
                         [
-                            ("spline", SplineTransformer(degree=self.spline_degree, include_bias=False)),
+                            ("spline", SplineTransformer(n_knots=3, degree=self.spline_degree, include_bias=False)),
                             ("scaler", StandardScaler()),
                         ]
                     ),
@@ -198,24 +165,25 @@ def ATEfunctional(data, evaluator):
 
 
 class LassoRiesz:
-    def __init__(self, functional, spline_degree=3, monomial_degree=2):
+    def __init__(self, functional, spline_degree=3, monomial_degree=2, rL =0.01):
         self.expander = CovariateExpander(spline_degree, monomial_degree)
         self.functional = functional
         self.rho = None
+        self.rL = rL
 
-    def fit(self, x):
+    def fit(self, data):
+        x = np.concatenate([data.treatments, data.covariates],axis = 1)
         self.expander.fit(x)
         xb = self.expander.transform(x)
         mb = self.functional(x, self.expander.transform)
         hatM = np.mean(mb, axis=0)
         hatG = 1 / xb.shape[0] * (xb.T @ xb)
-
-        rho, _ = md_lasso_cd_paper(hatG, hatM, 0.01)
+        rho = md_lasso(hatG, hatM, self.rL)
         self.rho = rho
 
     def predict(self, x):
         xb = self.expander.transform(x)
         return xb @ self.rho
 
-
-
+    def get_riesz_representer(self,data):
+        return self.predict(np.concatenate([data.treatments, data.covariates], axis = 1))
