@@ -67,13 +67,14 @@ class Dataset:
 
     @staticmethod
     def outcome_regression(covariates, treatments):
-        treated_regression = covariates[:, 0] ** 2 + covariates[:, 2] + covariates[:, 3]
-        control_regression = covariates[:, 0] ** 2 + covariates[:, 2] + covariates[:, 3]
+        X = covariates[:, 0]
+        treated_regression = 5 * X + 9 * X * treatments + 5 * np.sin(X * 3.14) + 25 * (treatments - 2)
+        control_regression = 5 * X + 5 * np.sin(X * 3.14) - 50
         return treatments * treated_regression + (1 - treatments) * control_regression
 
     @staticmethod
     def propensity_score(covariates):
-        logit = covariates[:, 0] ** 2 + covariates[:, 2] + covariates[:, 3]
+        logit = -0.02 * covariates[:, 0] - covariates[:, 0] ** 2 + 4 * np.log(covariates[:, 0] + 0.3) + 1.5
         return 1 / (1 + np.exp(-logit))
 
     @property
