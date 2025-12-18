@@ -9,6 +9,25 @@ class Dataset:
         covariate_columns = [i for i in range(raw_data.shape[1]) if i not in [outcome_column, treatment_column]]
         self.covariate_columns = covariate_columns
 
+    @classmethod
+    def get_fit_and_train_folds(cls, folds, fit_index):
+        train_data = cls.join_datasets([folds[i] for i in range(len(folds)) if i != fit_index])
+        return folds[fit_index], train_data
+
+    def split_into_folds(self, folds):
+        number_of_samples = self.raw_data.shape[0]
+        indices = np.arange(number_of_samples, dtype=int)
+        treated_indices = indices[self.treatments == 1]
+        control_indices = indices[self.treatments == 0]
+        np.random.shuffle(treated_indices)
+        np.random.shuffle(control_indices)
+        treated_fold_indices = np.array_split(treated_indices, folds)
+        control_fold_indices = np.array_split(control_indices, folds)
+        folds = [
+            self.raw_data[np.concatenate([treated_fold_indices[i], control_fold_indices[i]])] for i in range(folds)
+        ]
+        return [Dataset(fold, self.outcome_column, self.treatment_column) for fold in folds]
+
     def test_train_split(self, train_proportion):
         number_of_samples = self.raw_data.shape[0]
         indices = np.arange(number_of_samples, dtype=int)
@@ -30,6 +49,11 @@ class Dataset:
             Dataset(train_data, self.outcome_column, self.treatment_column),
             Dataset(test_data, self.outcome_column, self.treatment_column),
         )
+
+    @classmethod
+    def join_datasets(cls, datasets):
+        raw_data = np.concatenate([dataset.raw_data for dataset in datasets], axis=0)
+        return cls(raw_data, datasets[0].outcome_column, datasets[0].treatment_column)
 
     @classmethod
     def simulate_dataset(cls, number_of_samples, number_of_covariates):
