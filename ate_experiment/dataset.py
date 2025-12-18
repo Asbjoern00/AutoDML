@@ -1,4 +1,5 @@
 import numpy as np
+import xgboost as xgb
 
 
 class Dataset:
@@ -57,7 +58,7 @@ class Dataset:
 
     @classmethod
     def simulate_dataset(cls, number_of_samples, number_of_covariates):
-        covariates = np.random.uniform(low=-0.5, high=0.5, size=(number_of_samples, number_of_covariates))
+        covariates = np.random.uniform(low=0, high=1, size=(number_of_samples, number_of_covariates))
         propensities = cls.propensity_score(covariates)
         treatments = np.random.binomial(1, propensities, size=number_of_samples)
         noise = np.random.normal(loc=0, scale=1, size=number_of_samples)
@@ -88,3 +89,17 @@ class Dataset:
     @property
     def covariates(self):
         return self.raw_data[:, self.covariate_columns]
+
+    @property
+    def xgb_dataset(self):
+        return xgb.DMatrix(self.raw_data[:, [self.treatment_column] + self.covariate_columns], label=self.outcomes)
+
+    def get_counterfactual_datasets(self):
+        treated_raw_data = self.raw_data.copy()
+        treated_raw_data[:, self.treatment_column] = np.ones_like(treated_raw_data[:, self.treatment_column])
+        control_raw_data = self.raw_data.copy()
+        control_raw_data[:, self.treatment_column] = np.zeros_like(control_raw_data[:, self.treatment_column])
+        return (
+            Dataset(treated_raw_data, self.outcome_column, self.treatment_column),
+            Dataset(control_raw_data, self.outcome_column, self.treatment_column),
+        )
