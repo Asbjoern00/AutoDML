@@ -75,7 +75,7 @@ class Dataset:
 
     @staticmethod
     def propensity_score(covariates):
-        logit = -0.02 * covariates[:, 0] - covariates[:, 0] ** 2 + 4 * np.log(covariates[:, 0] + 0.3)
+        logit = -0.02 * covariates[:, 0] - covariates[:, 0] ** 2 + 4 * np.log(covariates[:, 0] + 0.3) + 1.5
         return 1 / (1 + np.exp(-logit))
 
     @property
