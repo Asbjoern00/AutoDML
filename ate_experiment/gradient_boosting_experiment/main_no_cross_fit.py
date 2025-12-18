@@ -3,9 +3,11 @@ import numpy as np
 from ate_experiment.dataset import Dataset
 from ate_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, PropensityXGBModel, RieszXGBModel
 
-np.random.seed(42)
+np.random.seed(2131)
 
-truth = 29.502
+truth = 2.121539888279284
+
+
 plug_ins = []
 propensity_ests = []
 riesz_ests = []
@@ -16,6 +18,7 @@ propensity_covers = []
 
 iterations = 1000
 number_of_samples = 1000
+number_of_covariates = 10
 lambda_ = 5
 number_of_folds = 10
 
@@ -42,7 +45,7 @@ for i in range(iterations):
 
     print(i)
 
-    data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=1)
+    data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=number_of_covariates)
     outcome_model = OutcomeXGBModel(outcome_params)
     outcome_model.fit(data)
     outcome_predictions = outcome_model.get_predictions(data)

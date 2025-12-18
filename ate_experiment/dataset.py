@@ -58,6 +58,7 @@ class Dataset:
 
     @classmethod
     def simulate_dataset(cls, number_of_samples, number_of_covariates):
+        assert number_of_covariates >= 8
         covariates = np.random.uniform(low=0, high=1, size=(number_of_samples, number_of_covariates))
         propensities = cls.propensity_score(covariates)
         treatments = np.random.binomial(1, propensities, size=number_of_samples)
@@ -68,14 +69,23 @@ class Dataset:
 
     @staticmethod
     def outcome_regression(covariates, treatments):
-        X = covariates[:, 0]
-        treated_regression = 5 * X + 9 * X * treatments + 5 * np.sin(X * 3.14) + 25 * (treatments - 2)
-        control_regression = 5 * X + 5 * np.sin(X * 3.14) - 50
+        X0 = covariates[:, 0]
+        X1 = covariates[:, 1]
+        X2 = covariates[:, 2]
+        X3 = covariates[:, 3]
+        X4 = covariates[:, 4]
+        X5 = covariates[:, 5]
+        treated_regression = X0 + X1**2 + X2 + np.sin(X3 * 3.14) + np.exp(X3 * X4)
+        control_regression = X0 + X1**2 + X2**2 + np.cos(X5 * 3.14)
         return treatments * treated_regression + (1 - treatments) * control_regression
 
     @staticmethod
     def propensity_score(covariates):
-        logit = -0.02 * covariates[:, 0] - covariates[:, 0] ** 2 + 4 * np.log(covariates[:, 0] + 0.3) + 1.5
+        X4 = covariates[:, 4]
+        X5 = covariates[:, 5]
+        X6 = covariates[:, 6]
+        X7 = covariates[:, 7]
+        logit = X4 + np.cos(X5*3.14) - np.cos(X6*3.14) + -X4*X7 - 1.5
         return 1 / (1 + np.exp(-logit))
 
     @property
@@ -102,11 +112,7 @@ class Dataset:
     def xgb_riesz_dataset(self):
         treated_dataset, control_dataset = self.get_counterfactual_datasets()
         data = self.join_datasets([self, treated_dataset, control_dataset])
-        labels = (
-            [2] * self.raw_data.shape[0]
-            + [1] * self.raw_data.shape[0]
-            + [0] * self.raw_data.shape[0]
-        )
+        labels = [2] * self.raw_data.shape[0] + [1] * self.raw_data.shape[0] + [0] * self.raw_data.shape[0]
         return xgb.DMatrix(data.raw_data[:, [self.treatment_column] + self.covariate_columns], label=np.array(labels))
 
     def get_counterfactual_datasets(self):
