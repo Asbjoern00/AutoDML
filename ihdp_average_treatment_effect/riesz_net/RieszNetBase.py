@@ -1,23 +1,106 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from average_treatment_effect.dataset import Dataset as ATEDataset
-from average_treatment_effect.riesz_net.RieszNetBase import BiHeadedBaseRieszNet, BaseRieszNet
-from average_treatment_effect.riesz_net.BaseRieszNetLoss import BaseRieszNetLoss
-from AveragePartialDerivative.dataset import Dataset as DerivativeDataset
+from ihdp_average_treatment_effect.dataset import Dataset as ATEDataset
+
+
+class BaseRieszNet(nn.Module):
+    def __init__(self, functional):
+        super(BaseRieszNet, self).__init__()
+        self.functional = functional
+
+        self.shared1 = nn.Linear(26, 200)
+        self.shared2 = nn.Linear(200, 200)
+        self.shared3 = nn.Linear(200, 200)
+
+        self.rrOutput = nn.Linear(200, 1)
+
+        self.untreated_regression_layer1 = nn.Linear(200, 100)
+        self.untreated_regression_layer2 = nn.Linear(100, 100)
+        self.untreated_regression_output = nn.Linear(100, 1)
+
+        self.treated_regression_layer1 = nn.Linear(200, 100)
+        self.treated_regression_layer2 = nn.Linear(100, 100)
+        self.treated_regression_output = nn.Linear(100, 1)
+
+        self.epsilon = nn.Parameter(torch.Tensor([0.0]))
+
+    def _forward_shared(self, data):
+        z = self.shared1(data)
+        z = F.elu(z)
+        z = self.shared2(z)
+        z = F.elu(z)
+        z = self.shared3(z)
+        z = F.elu(z)
+        return z
+
+    def _evaluate_riesz(self, data):
+        z = self._forward_shared(data)
+        return self.rrOutput(z)
+
+    def forward(self, data):
+        rr_functional = self.functional(data, self._evaluate_riesz)
+
+        z = self._forward_shared(data)
+        rr_output = self.rrOutput(z)
+
+        y_treated = self.treated_regression_layer1(z)
+        y_treated = F.elu(y_treated)
+        y_treated = self.treated_regression_layer2(y_treated)
+        y_treated = F.elu(y_treated)
+        y_treated = self.treated_regression_output(y_treated)
+
+        y_untreated = self.untreated_regression_layer1(z)
+        y_untreated = F.elu(y_untreated)
+        y_untreated = self.untreated_regression_layer2(y_untreated)
+        y_untreated = F.elu(y_untreated)
+        y_untreated = self.untreated_regression_output(y_untreated)
+
+        outcome_prediction = y_treated*data[:,[0]] + y_untreated*(1-data[:,[0]])
+
+        return rr_output, rr_functional, outcome_prediction, self.epsilon
+
+
+class BaseRieszNetLoss(nn.Module):
+    def __init__(self, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0):
+        super(BaseRieszNetLoss, self).__init__()
+        self.rr_weight = rr_weight
+        self.tmle_weight = tmle_weight
+        self.outcome_mse_weight = outcome_mse_weight
+
+    def forward(self, rr_output, rr_functional, outcome_prediction, outcome, epsilon):
+        mse = F.mse_loss(outcome_prediction, outcome)
+        tmle_loss = F.mse_loss(outcome - outcome_prediction, epsilon * rr_output)
+        rr_loss = torch.mean(rr_output**2) - 2 * torch.mean(rr_functional)
+        loss = tmle_loss * self.tmle_weight + rr_loss * self.rr_weight + mse * self.outcome_mse_weight
+        return loss
+
+
+def ate_functional(data, evaluator, treatment_index=0):
+    x = data.clone()
+
+    # Predict outcome under treatment T=1
+    x_treated = x.clone()
+    x_treated[:, treatment_index] = 1
+    y1 = evaluator(x_treated)
+
+    # Predict outcome under treatment T=0
+    x_control = x.clone()
+    x_control[:, treatment_index] = 0
+    y0 = evaluator(x_control)
+
+    return y1 - y0
 
 
 class RieszNetBaseModule:
     def __init__(
-        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=2500, biheaded = False,
-            in_features = 26
+        self, functional, weight_decay=1e-2, rr_weight=0.1, tmle_weight=1.0, outcome_mse_weight=1.0, epochs=1000
     ):
         self.optimizer = None
         self.model = None
         self.weight_decay = None
-        self.biheaded = biheaded
         self.functional = functional
-        self.in_features = in_features
         self.set_model(weight_decay)
         self.criterion = BaseRieszNetLoss(
             rr_weight=rr_weight, tmle_weight=tmle_weight, outcome_mse_weight=outcome_mse_weight
@@ -25,11 +108,7 @@ class RieszNetBaseModule:
         self.epochs = epochs
 
     def set_model(self, weight_decay):
-        if self.biheaded:
-            self.model = BiHeadedBaseRieszNet(self.functional,self.in_features)
-        else:
-            self.model = BaseRieszNet(self.functional,self.in_features)
-
+        self.model = BaseRieszNet(self.functional)
         self.weight_decay = weight_decay
         optimizer_params = [
             {
@@ -49,7 +128,7 @@ class RieszNetBaseModule:
 
     @staticmethod
     def _format_data(data):
-        if isinstance(data, ATEDataset) or isinstance(data, DerivativeDataset):
+        if isinstance(data, ATEDataset):
             predictors = torch.concat((data.get_as_tensor("treatments"), data.get_as_tensor("covariates")), dim=1)
             outcomes = data.get_as_tensor("outcomes")
             return predictors, outcomes
@@ -60,10 +139,10 @@ class RieszNetBaseModule:
         return self.model(x)[2]
 
     def predict(self, data):
-        predictors, outcomes = self._format_data(data)
-        functional_eval = self.model.functional(predictors, self._regression_function)
-        rr_output, _, outcome_prediction, _ = self.model(predictors)
-
+        with torch.no_grad():
+            predictors, outcomes = self._format_data(data)
+            functional_eval = self.model.functional(predictors, self._regression_function)
+            rr_output, _, outcome_prediction, _ = self.model(predictors)
         return rr_output, functional_eval, outcome_prediction
 
     def train(self, data, patience=40, delta=1e-3):
@@ -83,10 +162,11 @@ class RieszNetBaseModule:
             loss.backward()
             self.optimizer.step()
 
-            rr_output_val, rr_functional_val, outcome_prediction_val, val_epsilon = self.model(val_predictors)
-            val_loss = self.criterion(
-                rr_output_val, rr_functional_val, outcome_prediction_val, val_outcomes, val_epsilon
-            ).item()
+            with torch.no_grad():
+                rr_output_val, rr_functional_val, outcome_prediction_val, val_epsilon = self.model(val_predictors)
+                val_loss = self.criterion(
+                    rr_output_val, rr_functional_val, outcome_prediction_val, val_outcomes, val_epsilon
+                ).item()
 
             if delta + val_loss < best_val_loss:
                 best_val_loss = val_loss

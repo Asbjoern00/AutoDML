@@ -1,7 +1,7 @@
 import numpy as np
 
-from average_treatment_effect.boost_model.booster_wrapper import BoosterWrapper
-from average_treatment_effect.dataset import Dataset
+from ihdp_average_treatment_effect.boost_model.booster_wrapper import BoosterWrapper
+from ihdp_average_treatment_effect.dataset import Dataset
 
 np.random.seed(42)
 
@@ -73,5 +73,5 @@ for i in range(1000):
 base_errors = [(est - truth) / se for est, truth, se in zip(base_estimates, truths, base_stds)]
 riesz_errors = [(est - truth) / se for est, truth, se in zip(riesz_estimates, truths, riesz_stds)]
 
-# np.savetxt("average_treatment_effect/boost_model/results/base_output.csv", np.array(base_errors), delimiter=",")
-# np.savetxt("average_treatment_effect/boost_model/results/riesz_output.csv", np.array(riesz_errors), delimiter=",")
+# np.savetxt("ihdp_average_treatment_effect/boost_model/results/base_output.csv", np.array(base_errors), delimiter=",")
+# np.savetxt("ihdp_average_treatment_effect/boost_model/results/riesz_output.csv", np.array(riesz_errors), delimiter=",")

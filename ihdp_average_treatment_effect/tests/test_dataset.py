@@ -3,7 +3,7 @@ import torch
 import pytest
 
 
-from average_treatment_effect.dataset import Dataset
+from ihdp_average_treatment_effect.dataset import Dataset
 from dataclasses import fields
 
 
@@ -38,7 +38,7 @@ class TestDataset:
         assert dataset.get_average_treatment_effect() == 1
 
     def test_can_load_csv(self, dataset):
-        path = "average_treatment_effect/tests/data/test_data.csv"
+        path = "ihdp_average_treatment_effect/tests/data/test_data.csv"
         dataset_from_csv = Dataset.from_csv(path)
 
         np.testing.assert_array_equal(dataset_from_csv.treatments, dataset.treatments)

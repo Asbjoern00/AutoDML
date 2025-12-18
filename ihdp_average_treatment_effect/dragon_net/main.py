@@ -1,6 +1,6 @@
 import torch
-from average_treatment_effect import dataset
-from average_treatment_effect.dragon_net.dragon_net_wrapper import DragonNetWrapper
+from ihdp_average_treatment_effect import dataset
+from ihdp_average_treatment_effect.dragon_net.dragon_net_wrapper import DragonNetWrapper
 
 torch.manual_seed(42)
 estimates = []
