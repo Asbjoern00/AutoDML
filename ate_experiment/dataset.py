@@ -9,12 +9,34 @@ class Dataset:
         covariate_columns = [i for i in range(raw_data.shape[1]) if i not in [outcome_column, treatment_column]]
         self.covariate_columns = covariate_columns
 
+    def test_train_split(self, train_proportion):
+        number_of_samples = self.raw_data.shape[0]
+        indices = np.arange(number_of_samples, dtype=int)
+        treated_indices = indices[self.treatments == 1]
+        control_indices = indices[self.treatments == 0]
+
+        np.random.shuffle(treated_indices)
+        np.random.shuffle(control_indices)
+
+        treated_train_indices = treated_indices[: int(train_proportion * len(treated_indices))]
+        control_train_indices = control_indices[: int(train_proportion * len(control_indices))]
+        train_data = self.raw_data[np.concatenate([treated_train_indices, control_train_indices]), :]
+
+        treated_test_indices = treated_indices[int(train_proportion * len(treated_indices)) :]
+        control_test_indices = control_indices[int(train_proportion * len(control_indices)) :]
+        test_data = self.raw_data[np.concatenate([treated_test_indices, control_test_indices]), :]
+
+        return (
+            Dataset(train_data, self.outcome_column, self.treatment_column),
+            Dataset(test_data, self.outcome_column, self.treatment_column),
+        )
+
     @classmethod
-    def simulate_dataset(cls, size, number_of_covariates):
-        covariates = np.random.uniform(low=-1, high=1, size=(size, number_of_covariates))
+    def simulate_dataset(cls, number_of_samples, number_of_covariates):
+        covariates = np.random.uniform(low=-0.5, high=0.5, size=(number_of_samples, number_of_covariates))
         propensities = cls.propensity_score(covariates)
-        treatments = np.random.binomial(1, propensities, size=size)
-        noise = np.random.normal(loc=0, scale=1, size=size)
+        treatments = np.random.binomial(1, propensities, size=number_of_samples)
+        noise = np.random.normal(loc=0, scale=1, size=number_of_samples)
         outcomes = cls.outcome_regression(covariates, treatments) + noise
         data = np.concatenate([outcomes.reshape(-1, 1), treatments.reshape(-1, 1), covariates], axis=1)
         return cls(raw_data=data, outcome_column=0, treatment_column=1)
