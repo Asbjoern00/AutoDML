@@ -17,7 +17,7 @@ class OutcomeXGBModel:
             num_boost_round=10000,
             evals=[(data_train.xgb_dataset, "train"), (data_test.xgb_dataset, "eval")],
             early_stopping_rounds=20,
-            verbose_eval=True,
+            verbose_eval=False,
         )
 
     def get_predictions(self, data):
@@ -45,7 +45,7 @@ class PropensityXGBModel:
             num_boost_round=10000,
             evals=[(data_train.xgb_propensity_dataset, "train"), (data_test.xgb_propensity_dataset, "eval")],
             early_stopping_rounds=20,
-            verbose_eval=True,
+            verbose_eval=False,
         )
 
     def get_riesz_representer(self, data):
