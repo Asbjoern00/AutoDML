@@ -1,5 +1,5 @@
 import torch
-from average_treatment_effect.dragon_net.dragon_net import DragonNet, DragonNetLoss
+from ihdp_average_treatment_effect.dragon_net.dragon_net import DragonNet, DragonNetLoss
 
 
 class TestDragonNet:

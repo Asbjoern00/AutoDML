@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from average_treatment_effect.dragon_net.dragon_net import DragonNet
+from ihdp_average_treatment_effect.dragon_net.dragon_net import DragonNet
 
 
 class DragonNetWrapper:
