@@ -16,7 +16,7 @@ class OutcomeXGBModel:
             dtrain=data_train.xgb_dataset,
             num_boost_round=1000,
             evals=[(data_train.xgb_dataset, "train"), (data_test.xgb_dataset, "eval")],
-            early_stopping_rounds=20,
+            early_stopping_rounds=10,
             verbose_eval=False,
         )
 
@@ -44,7 +44,7 @@ class PropensityXGBModel:
             dtrain=data_train.xgb_propensity_dataset,
             num_boost_round=1000,
             evals=[(data_train.xgb_propensity_dataset, "train"), (data_test.xgb_propensity_dataset, "eval")],
-            early_stopping_rounds=20,
+            early_stopping_rounds=10,
             verbose_eval=False,
         )
 
@@ -68,7 +68,7 @@ class RieszXGBModel:
             obj=self.riesz_objective,
             custom_metric=self.riesz_eval,
             evals=[(data_train.xgb_riesz_dataset, "train"), (data_test.xgb_riesz_dataset, "eval")],
-            early_stopping_rounds=20,
+            early_stopping_rounds=10,
             verbose_eval=False,
         )
 
