@@ -94,6 +94,10 @@ class Dataset:
     def xgb_dataset(self):
         return xgb.DMatrix(self.raw_data[:, [self.treatment_column] + self.covariate_columns], label=self.outcomes)
 
+    @property
+    def xgb_propensity_dataset(self):
+        return xgb.DMatrix(self.covariates, label=self.treatments)
+
     def get_counterfactual_datasets(self):
         treated_raw_data = self.raw_data.copy()
         treated_raw_data[:, self.treatment_column] = np.ones_like(treated_raw_data[:, self.treatment_column])

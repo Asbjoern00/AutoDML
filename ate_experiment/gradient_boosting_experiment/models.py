@@ -16,7 +16,7 @@ class OutcomeXGBModel:
             dtrain=data_train.xgb_dataset,
             num_boost_round=10000,
             evals=[(data_train.xgb_dataset, "train"), (data_test.xgb_dataset, "eval")],
-            early_stopping_rounds=10,
+            early_stopping_rounds=20,
             verbose_eval=True,
         )
 
@@ -30,3 +30,24 @@ class OutcomeXGBModel:
             "treated_predictions": treated_predictions,
             "control_predictions": control_predictions,
         }
+
+
+class PropensityXGBModel:
+    def __init__(self, params):
+        self.model = None
+        self.params = params
+
+    def fit(self, data: Dataset):
+        data_train, data_test = data.test_train_split(train_proportion=0.8)
+        self.model = xgb.train(
+            params=self.params,
+            dtrain=data_train.xgb_propensity_dataset,
+            num_boost_round=10000,
+            evals=[(data_train.xgb_propensity_dataset, "train"), (data_test.xgb_propensity_dataset, "eval")],
+            early_stopping_rounds=20,
+            verbose_eval=True,
+        )
+
+    def get_riesz_representer(self, data):
+        propensity_scores = self.model.predict(data.xgb_propensity_dataset)
+        return data.treatments / propensity_scores + (1 - data.treatments) / (1 - propensity_scores)
