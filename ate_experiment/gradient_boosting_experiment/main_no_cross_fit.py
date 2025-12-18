@@ -15,6 +15,10 @@ propensity_vars = []
 riesz_vars = []
 riesz_covers = []
 propensity_covers = []
+riesz_lowers = []
+riesz_uppers = []
+propensity_lowers = []
+propensity_uppers = []
 
 iterations = 1000
 number_of_samples = 1000
@@ -83,13 +87,40 @@ for i in range(iterations):
     propensity_ests.append(propensity_estimate)
     riesz_covers.append(riesz_cover)
     propensity_covers.append(propensity_cover)
-
-    plugin_mse = sum((est - truth) ** 2 for est in plug_ins) / len(plug_ins)
-    propensity_mse = sum((est - truth) ** 2 for est in propensity_ests) / len(propensity_ests)
-    riesz_mse = sum((est - truth) ** 2 for est in riesz_ests) / len(riesz_ests)
-    propensity_coverage = sum(propensity_covers) / len(propensity_covers)
-    riesz_coverage = sum(riesz_covers) / len(riesz_covers)
+    riesz_uppers.append(riesz_upper)
+    riesz_lowers.append(riesz_lower)
+    propensity_lowers.append(propensity_lower)
+    propensity_uppers.append(propensity_upper)
 
 
-    print(plugin_mse**0.5, propensity_mse**0.5, riesz_mse**0.5)
-    print(propensity_coverage, riesz_coverage)
+headers = [
+    "truth",
+    "plugin_estimate",
+    "propensity_estimate",
+    "propensity_lower",
+    "propensity_upper",
+    "riesz_estimate",
+    "riesz_lower",
+    "riesz_upper",
+]
+
+results = np.array(
+    [
+        [truth for _ in range(iterations)],
+        plug_ins,
+        propensity_ests,
+        propensity_lowers,
+        propensity_uppers,
+        riesz_ests,
+        riesz_lowers,
+        riesz_uppers,
+    ]
+).T
+
+np.savetxt(
+    "ate_experiment/gradient_boosting_experiment/results/no_cross_fit_results.csv",
+    results,
+    delimiter=",",
+    header=",".join(headers),
+    comments=''
+)
