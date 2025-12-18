@@ -1,33 +1,48 @@
 import numpy as np
 
 from ate_experiment.dataset import Dataset
-from ate_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, PropensityXGBModel
+from ate_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, PropensityXGBModel, RieszXGBModel
 
 truth = 29.502
 plug_ins = []
-estimates = []
+propensity_ests = []
+riesz_ests = []
 
-n_iterations = 1000
+iterations = 100
+number_of_samples = 1000
 
-for i in range(n_iterations):
+for i in range(iterations):
+
     print(i)
-    data = Dataset.simulate_dataset(number_of_samples=500, number_of_covariates=1)
+
+    data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=20)
+    print(sum(data.treatments))
     outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "max_depth": 3, "eta": 0.1}
     outcome_model = OutcomeXGBModel(outcome_params)
     outcome_model.fit(data)
     outcome_predictions = outcome_model.get_predictions(data)
     plug_in = np.mean(outcome_predictions["treated_predictions"] - outcome_predictions["control_predictions"])
+
     propensity_params = {"objective": "binary:logistic", "eval_metric": "logloss", "max_depth": 3, "eta": 0.1}
     propensity_model = PropensityXGBModel(propensity_params)
     propensity_model.fit(data)
-    riesz_representer = propensity_model.get_riesz_representer(data)
-    correction = np.mean(riesz_representer * (data.outcomes - outcome_predictions["predictions"]))
-    estimate = plug_in + correction
+    propensity_riesz_representer = propensity_model.get_riesz_representer(data)
+    propensity_correction = np.mean(propensity_riesz_representer * (data.outcomes - outcome_predictions["predictions"]))
+    propensity_estimate = plug_in + propensity_correction
+
+    riesz_params = {"disable_default_eval_metric": True, "max_depth": 3, "eta": 0.1}
+    riesz_model = RieszXGBModel(riesz_params, hessian_correction=1/number_of_samples)
+    riesz_model.fit(data)
+    riesz_riesz_representer = riesz_model.get_riesz_representer(data)
+    riesz_correction = np.mean(riesz_riesz_representer * (data.outcomes - outcome_predictions["predictions"]))
+    riesz_estimate = plug_in + riesz_correction
+
     plug_ins.append(plug_in)
-    estimates.append(estimate)
+    riesz_ests.append(riesz_estimate)
+    propensity_ests.append(propensity_estimate)
 
-dr_mse = sum((estimate - truth)**2 for estimate in estimates) / n_iterations
-plugin_mse = sum((estimate - truth)**2 for estimate in plug_ins) / n_iterations
+plugin_mse = sum((est - truth) ** 2 for est in plug_ins) / len(plug_ins)
+propensity_mse = sum((est - truth) ** 2 for est in propensity_ests) / len(propensity_ests)
+riesz_mse = sum((est - truth) ** 2 for est in riesz_ests) / len(riesz_ests)
 
-print(np.sqrt(plugin_mse))
-print(np.sqrt(dr_mse))
+print(plugin_mse, propensity_mse, riesz_mse)

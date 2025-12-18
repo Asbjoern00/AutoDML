@@ -98,6 +98,17 @@ class Dataset:
     def xgb_propensity_dataset(self):
         return xgb.DMatrix(self.covariates, label=self.treatments)
 
+    @property
+    def xgb_riesz_dataset(self):
+        treated_dataset, control_dataset = self.get_counterfactual_datasets()
+        data = self.join_datasets([self, treated_dataset, control_dataset])
+        labels = (
+            [2] * self.raw_data.shape[0]
+            + [1] * self.raw_data.shape[0]
+            + [0] * self.raw_data.shape[0]
+        )
+        return xgb.DMatrix(data.raw_data[:, [self.treatment_column] + self.covariate_columns], label=np.array(labels))
+
     def get_counterfactual_datasets(self):
         treated_raw_data = self.raw_data.copy()
         treated_raw_data[:, self.treatment_column] = np.ones_like(treated_raw_data[:, self.treatment_column])
