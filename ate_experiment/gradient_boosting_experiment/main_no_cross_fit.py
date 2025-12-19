@@ -23,7 +23,6 @@ propensity_vars = []
 iterations = 1000
 number_of_samples = 1000
 number_of_covariates = 10
-lambda_ = 5
 number_of_folds = 10
 
 outcome_params = {
@@ -31,18 +30,20 @@ outcome_params = {
     "eval_metric": "rmse",
     "max_depth": 3,
     "eta": 0.1,
-    "lambda": lambda_,
 }
 
 propensity_params = {
     "objective": "binary:logistic",
     "eval_metric": "logloss",
-    "max_depth": 3,
+    "max_depth": 2,
     "eta": 0.1,
-    "lambda": lambda_,
 }
 
-riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.1, "lambda": 30}
+riesz_params = {
+    "disable_default_eval_metric": True,
+    "max_depth": 2,
+    "eta": 0.1,
+}
 
 
 for i in range(iterations):
@@ -68,7 +69,7 @@ for i in range(iterations):
     propensity_upper = propensity_estimate + 1.96 * np.sqrt(propensity_var)
     propensity_cover = propensity_lower <= truth <= propensity_upper
 
-    riesz_model = RieszXGBModel(riesz_params, hessian_correction=1 / number_of_samples)
+    riesz_model = RieszXGBModel(riesz_params, hessian_correction=0)
     riesz_model.fit(data)
     riesz_riesz_representer = riesz_model.get_riesz_representer(data)
     riesz_estimate_terms = (
@@ -93,6 +94,15 @@ for i in range(iterations):
     propensity_uppers.append(propensity_upper)
     riesz_vars.append(riesz_var)
     propensity_vars.append(propensity_var)
+
+    plugin_mse = sum((est - truth) ** 2 for est in plug_ins) / len(plug_ins)
+    propensity_mse = sum((est - truth) ** 2 for est in propensity_ests) / len(propensity_ests)
+    riesz_mse = sum((est - truth) ** 2 for est in riesz_ests) / len(riesz_ests)
+    propensity_coverage = sum(propensity_covers) / len(propensity_covers)
+    riesz_coverage = sum(riesz_covers) / len(riesz_covers)
+
+    print(plugin_mse**0.5, propensity_mse**0.5, riesz_mse**0.5)
+    print(propensity_coverage, riesz_coverage)
 
 
 headers = [
@@ -128,5 +138,5 @@ np.savetxt(
     results,
     delimiter=",",
     header=",".join(headers),
-    comments=''
+    comments="",
 )
