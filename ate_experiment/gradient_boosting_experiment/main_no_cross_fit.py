@@ -25,25 +25,9 @@ number_of_samples = 1000
 number_of_covariates = 10
 number_of_folds = 10
 
-outcome_params = {
-    "objective": "reg:squarederror",
-    "eval_metric": "rmse",
-    "max_depth": 3,
-    "eta": 0.1,
-}
-
-propensity_params = {
-    "objective": "binary:logistic",
-    "eval_metric": "logloss",
-    "max_depth": 2,
-    "eta": 0.1,
-}
-
-riesz_params = {
-    "disable_default_eval_metric": True,
-    "max_depth": 2,
-    "eta": 0.1,
-}
+outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.05, "lambda": 100, "max_depth": 2}
+propensity_params = {"objective": "binary:logistic", "eval_metric": "logloss", "eta": 0.3, "lambda": 50, "max_depth": 2}
+riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.05, "lambda": 50}
 
 
 for i in range(iterations):
