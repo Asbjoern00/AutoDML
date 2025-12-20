@@ -20,6 +20,16 @@ class OutcomeXGBModel:
             verbose_eval=False,
         )
 
+    def cv(self, data: Dataset):
+        cv = xgb.cv(
+            params=self.params,
+            dtrain=data.xgb_dataset,
+            num_boost_round=1000,
+            early_stopping_rounds=10,
+            verbose_eval=False,
+        )
+        return cv['test-rmse-mean'][-1]
+
     def get_predictions(self, data):
         treated_data, control_data = data.get_counterfactual_datasets()
         predictions = self.model.predict(data.xgb_dataset)
@@ -48,6 +58,16 @@ class TreatmentXGBModel:
             verbose_eval=False,
         )
 
+    def cv(self, data: Dataset):
+        cv = xgb.cv(
+            params=self.params,
+            dtrain=data.xgb_treatment_dataset,
+            num_boost_round=1000,
+            early_stopping_rounds=10,
+            verbose_eval=False,
+        )
+        return cv['test-rmse-mean'][-1]
+
     def get_riesz_representer(self, data):
         predictions = self.model.predict(data.xgb_treatment_dataset)
         riesz_representer = (
@@ -74,6 +94,18 @@ class RieszXGBModel:
             early_stopping_rounds=10,
             verbose_eval=False,
         )
+
+    def cv(self, data: Dataset):
+        cv = xgb.cv(
+            params=self.params,
+            dtrain=data.xgb_riesz_dataset,
+            num_boost_round=1000,
+            obj=self.riesz_objective,
+            custom_metric=self.riesz_eval,
+            early_stopping_rounds=10,
+            verbose_eval=False,
+        )
+        return cv['test-Riesz-Loss-mean'][-1]
 
     def get_riesz_representer(self, data):
         propensity_scores = self.model.predict(data.xgb_riesz_dataset)
