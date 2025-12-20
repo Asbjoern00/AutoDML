@@ -22,7 +22,7 @@ propensity_vars = []
 
 iterations = 1000
 number_of_samples = 1000
-number_of_covariates = 10
+number_of_covariates = 1
 number_of_folds = 10
 
 outcome_params = {
@@ -104,3 +104,39 @@ for i in range(1000):
     print(plugin_mse**0.5, propensity_mse**0.5, riesz_mse**0.5)
     print(propensity_coverage, riesz_coverage)
 
+
+headers = [
+    "truth",
+    "plugin_estimate",
+    "propensity_estimate",
+    "propensity_variance",
+    "propensity_lower",
+    "propensity_upper",
+    "riesz_estimate",
+    "riesz_variance",
+    "riesz_lower",
+    "riesz_upper",
+]
+
+results = np.array(
+    [
+        [truth for _ in range(iterations)],
+        plug_ins,
+        propensity_ests,
+        propensity_vars,
+        propensity_lowers,
+        propensity_uppers,
+        riesz_ests,
+        riesz_vars,
+        riesz_lowers,
+        riesz_uppers,
+    ]
+).T
+
+np.savetxt(
+    "ase_experiment/gradient_boosting_experiment/results/no_cross_fit_results.csv",
+    results,
+    delimiter=",",
+    header=",".join(headers),
+    comments="",
+)
