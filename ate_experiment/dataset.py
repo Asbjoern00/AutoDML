@@ -50,16 +50,6 @@ class Dataset:
             Dataset(train_data, self.outcome_column, self.treatment_column),
             Dataset(test_data, self.outcome_column, self.treatment_column),
         )
-    def get_counter_factual_datasets(self):
-        raw_data_treated = self.raw_data.copy()
-        raw_data_control = self.raw_data.copy()
-        raw_data_treated[:, self.treatment_column] = 1.0
-        raw_data_control[:, self.treatment_column] = 0.0
-
-        return (
-            Dataset(raw_data_treated, self.outcome_column, self.treatment_column),
-            Dataset(raw_data_control, self.outcome_column, self.treatment_column),
-        )
 
     @classmethod
     def join_datasets(cls, datasets):
