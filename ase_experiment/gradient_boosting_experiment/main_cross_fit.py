@@ -26,21 +26,22 @@ number_of_folds = 10
 outcome_params = {
     "objective": "reg:squarederror",
     "eval_metric": "rmse",
-    "max_depth": 2,
+    "max_depth": 3,
     "eta": 0.1,
 }
 
 propensity_params = {
     "objective": "reg:squarederror",
     "eval_metric": "rmse",
-    "max_depth": 2,
+    "max_depth": 3,
     "eta": 0.1,
 }
 
 riesz_params = {
     "disable_default_eval_metric": True,
-    "max_depth": 2,
+    "max_depth": 3,
     "eta": 0.1,
+    'lambda': 10
 }
 
 
