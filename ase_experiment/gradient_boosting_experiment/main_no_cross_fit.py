@@ -23,12 +23,10 @@ propensity_vars = []
 iterations = 1000
 number_of_samples = 1000
 number_of_covariates = 1
-number_of_folds = 10
 
-outcome_params = {'objective': 'reg:squarederror', 'eval_metric': 'rmse', 'eta': 0.1, 'lambda': 1, 'max_depth': 4}
-propensity_params = {'objective': 'reg:squarederror', 'eval_metric': 'rmse', 'eta': 0.3, 'lambda': 100, 'max_depth': 2}
-riesz_params = {'disable_default_eval_metric': True, 'max_depth': 3, 'eta': 0.3, 'lambda': 100}
-
+outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "lambda": 10, "max_depth": 3}
+propensity_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.3, "lambda": 10, "max_depth": 2}
+riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.1, "lambda": 100}
 
 for i in range(1000):
 
