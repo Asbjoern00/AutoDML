@@ -20,7 +20,8 @@ class Dataset:
         number_of_samples = self.raw_data.shape[0]
         indices = np.arange(number_of_samples, dtype=int)
         np.random.shuffle(indices)
-        folds = [self.raw_data[indices] for i in range(folds)]
+        indices = np.array_split(indices, folds)
+        folds = [self.raw_data[indices[i]] for i in range(folds)]
         return [Dataset(fold, self.outcome_column, self.treatment_column) for fold in folds]
 
     def test_train_split(self, train_proportion):
