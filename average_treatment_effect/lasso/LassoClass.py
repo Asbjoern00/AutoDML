@@ -152,17 +152,6 @@ class CovariateExpander:
         return x_out
 
 
-def ATEfunctional(data, evaluator):
-    data_treated = np.copy(data)
-    data_treated[:, 0] = 1
-    ate_treated = evaluator(data_treated)
-
-    data_untreated = np.copy(data)
-    data_untreated[:, 0] = 0
-    ate_untreated = evaluator(data_untreated)
-
-    return ate_treated - ate_untreated
-
 
 class LassoRiesz:
     def __init__(self, functional, spline_degree=3, monomial_degree=2, rL =0.01):
