@@ -21,7 +21,7 @@ propensity_uppers = []
 iterations = 1000
 number_of_samples = 1000
 number_of_covariates = 1
-number_of_folds = 10
+number_of_folds = 5
 
 outcome_params = {
     "objective": "reg:squarederror",
