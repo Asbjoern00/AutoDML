@@ -17,7 +17,7 @@ class OutcomeLASSO:
     def get_residuals(self,data):
         fitted = self.predict(data)
         observed = data.outcomes
-        return fitted - observed
+        return observed - fitted
 
     def get_functional(self, data):
         return self.functional(data,self.predict)
