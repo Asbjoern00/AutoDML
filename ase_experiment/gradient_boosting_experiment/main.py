@@ -1,7 +1,7 @@
 import numpy as np
 
 from ase_experiment.dataset import Dataset
-from ase_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, RieszXGBModel
+from ase_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, TreatmentXGBModel, RieszXGBModel
 
 np.random.seed(2131)
 
@@ -22,10 +22,17 @@ propensity_vars = []
 
 iterations = 1000
 number_of_samples = 1000
-number_of_covariates = 1
+number_of_covariates = 10
 number_of_folds = 10
 
 outcome_params = {
+    "objective": "reg:squarederror",
+    "eval_metric": "rmse",
+    "max_depth": 3,
+    "eta": 0.1,
+}
+
+propensity_params = {
     "objective": "reg:squarederror",
     "eval_metric": "rmse",
     "max_depth": 3,
@@ -39,7 +46,7 @@ riesz_params = {
 }
 
 
-for i in range(iterations):
+for i in range(1000):
 
     print(i)
 
@@ -48,6 +55,19 @@ for i in range(iterations):
     outcome_model.fit(data)
     outcome_predictions = outcome_model.get_predictions(data)
     plug_in = np.mean(outcome_predictions["treated_predictions"] - outcome_predictions["control_predictions"])
+    propensity_model = TreatmentXGBModel(propensity_params)
+    propensity_model.fit(data)
+    propensity_riesz_representer = propensity_model.get_riesz_representer(data)
+    propensity_estimate_terms = (
+        outcome_predictions["treated_predictions"]
+        - outcome_predictions["control_predictions"]
+        + propensity_riesz_representer * (data.outcomes - outcome_predictions["predictions"])
+    )
+    propensity_estimate = np.sum(propensity_estimate_terms) / number_of_samples
+    propensity_var = np.sum((propensity_estimate_terms - propensity_estimate) ** 2) / (number_of_samples**2)
+    propensity_lower = propensity_estimate - 1.96 * np.sqrt(propensity_var)
+    propensity_upper = propensity_estimate + 1.96 * np.sqrt(propensity_var)
+    propensity_cover = propensity_lower <= truth <= propensity_upper
 
     riesz_model = RieszXGBModel(riesz_params, hessian_correction=0)
     riesz_model.fit(data)
@@ -65,14 +85,22 @@ for i in range(iterations):
 
     plug_ins.append(plug_in)
     riesz_ests.append(riesz_estimate)
+    propensity_ests.append(propensity_estimate)
     riesz_covers.append(riesz_cover)
+    propensity_covers.append(propensity_cover)
     riesz_uppers.append(riesz_upper)
     riesz_lowers.append(riesz_lower)
+    propensity_lowers.append(propensity_lower)
+    propensity_uppers.append(propensity_upper)
     riesz_vars.append(riesz_var)
+    propensity_vars.append(propensity_var)
 
     plugin_mse = sum((est - truth) ** 2 for est in plug_ins) / len(plug_ins)
+    propensity_mse = sum((est - truth) ** 2 for est in propensity_ests) / len(propensity_ests)
     riesz_mse = sum((est - truth) ** 2 for est in riesz_ests) / len(riesz_ests)
+    propensity_coverage = sum(propensity_covers) / len(propensity_covers)
     riesz_coverage = sum(riesz_covers) / len(riesz_covers)
 
-    print(plugin_mse**0.5, riesz_mse**0.5)
-    print(riesz_coverage)
+    print(plugin_mse**0.5, propensity_mse**0.5, riesz_mse**0.5)
+    print(propensity_coverage, riesz_coverage)
+

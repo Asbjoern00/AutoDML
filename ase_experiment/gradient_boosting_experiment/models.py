@@ -1,7 +1,7 @@
 import numpy as np
 import xgboost as xgb
 
-from ate_experiment.dataset import Dataset
+from ase_experiment.dataset import Dataset
 
 
 class OutcomeXGBModel:
@@ -32,7 +32,7 @@ class OutcomeXGBModel:
         }
 
 
-class PropensityXGBModel:
+class TreatmentXGBModel:
     def __init__(self, params):
         self.model = None
         self.params = params
@@ -41,16 +41,19 @@ class PropensityXGBModel:
         data_train, data_test = data.test_train_split(train_proportion=0.8)
         self.model = xgb.train(
             params=self.params,
-            dtrain=data_train.xgb_propensity_dataset,
+            dtrain=data_train.xgb_treatment_dataset,
             num_boost_round=1000,
-            evals=[(data_train.xgb_propensity_dataset, "train"), (data_test.xgb_propensity_dataset, "eval")],
+            evals=[(data_train.xgb_treatment_dataset, "train"), (data_test.xgb_treatment_dataset, "eval")],
             early_stopping_rounds=10,
             verbose_eval=False,
         )
 
     def get_riesz_representer(self, data):
-        propensity_scores = self.model.predict(data.xgb_propensity_dataset)
-        return data.treatments / propensity_scores - (1 - data.treatments) / (1 - propensity_scores)
+        predictions = self.model.predict(data.xgb_treatment_dataset)
+        riesz_representer = (
+            np.exp(-1 / 4 * (data.treatments - 1 - predictions) ** 2 + 1 / 4 * (data.treatments - predictions) ** 2) - 1
+        )
+        return riesz_representer
 
 
 class RieszXGBModel:
@@ -74,7 +77,8 @@ class RieszXGBModel:
 
     def get_riesz_representer(self, data):
         propensity_scores = self.model.predict(data.xgb_riesz_dataset)
-        return propensity_scores[: data.raw_data.shape[0]]
+        riesz_representer = propensity_scores[: data.raw_data.shape[0]]
+        return riesz_representer
 
     def riesz_objective(self, predictions, data):
         grad = np.zeros_like(predictions)
