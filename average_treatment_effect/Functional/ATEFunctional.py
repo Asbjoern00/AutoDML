@@ -1,6 +1,6 @@
 def ate_functional(data, evaluator):
 
-    data_treated,data_control = data.get_counter_factual_datasets()
+    data_treated,data_control = data.get_counterfactual_datasets()
     y1 = evaluator(data_treated)
     y0 = evaluator(data_control)
 
