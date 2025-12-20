@@ -19,33 +19,18 @@ class Dataset:
     def split_into_folds(self, folds):
         number_of_samples = self.raw_data.shape[0]
         indices = np.arange(number_of_samples, dtype=int)
-        treated_indices = indices[self.treatments == 1]
-        control_indices = indices[self.treatments == 0]
-        np.random.shuffle(treated_indices)
-        np.random.shuffle(control_indices)
-        treated_fold_indices = np.array_split(treated_indices, folds)
-        control_fold_indices = np.array_split(control_indices, folds)
-        folds = [
-            self.raw_data[np.concatenate([treated_fold_indices[i], control_fold_indices[i]])] for i in range(folds)
-        ]
+        np.random.shuffle(indices)
+        folds = [self.raw_data[indices] for i in range(folds)]
         return [Dataset(fold, self.outcome_column, self.treatment_column) for fold in folds]
 
     def test_train_split(self, train_proportion):
         number_of_samples = self.raw_data.shape[0]
         indices = np.arange(number_of_samples, dtype=int)
-        treated_indices = indices[self.treatments == 1]
-        control_indices = indices[self.treatments == 0]
-
-        np.random.shuffle(treated_indices)
-        np.random.shuffle(control_indices)
-
-        treated_train_indices = treated_indices[: int(train_proportion * len(treated_indices))]
-        control_train_indices = control_indices[: int(train_proportion * len(control_indices))]
-        train_data = self.raw_data[np.concatenate([treated_train_indices, control_train_indices]), :]
-
-        treated_test_indices = treated_indices[int(train_proportion * len(treated_indices)) :]
-        control_test_indices = control_indices[int(train_proportion * len(control_indices)) :]
-        test_data = self.raw_data[np.concatenate([treated_test_indices, control_test_indices]), :]
+        np.random.shuffle(indices)
+        train_indices = indices[: int(train_proportion * len(indices))]
+        train_data = self.raw_data[train_indices]
+        test_indices = indices[int(train_proportion * len(indices)) :]
+        test_data = self.raw_data[test_indices]
 
         return (
             Dataset(train_data, self.outcome_column, self.treatment_column),
@@ -59,7 +44,6 @@ class Dataset:
 
     @classmethod
     def simulate_dataset(cls, number_of_samples, number_of_covariates):
-        assert number_of_covariates >= 8
         covariates = np.random.uniform(low=0, high=2, size=(number_of_samples, number_of_covariates))
         treatments_noise = np.random.normal(loc=0, scale=np.sqrt(2), size=number_of_samples)
         treatments = cls.treatment_regression(covariates) + treatments_noise
@@ -71,7 +55,7 @@ class Dataset:
     @staticmethod
     def outcome_regression(covariates, treatments):
         X0 = covariates[:, 0]
-        return 5 * X0 + 9 * treatments * (X0 + 2) ^ 2 + 5 * np.sin(X0 * 3.14) + 25 * treatments
+        return 5 * X0 + 9 * treatments * (X0 + 2) ** 2 + 5 * np.sin(X0 * 3.14) + 25 * treatments
 
     @staticmethod
     def treatment_regression(covariates):
