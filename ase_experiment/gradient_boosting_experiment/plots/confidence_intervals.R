@@ -25,7 +25,7 @@ a = ggplot(no_cross_fit_results[1:100,])+
            label = paste0("Coverage: ", round(mean(no_cross_fit_results$propensity_coverage),5)), 
            hjust = 1.1, vjust = 2, 
            size = 4)+
-  ylim(95, 130)+
+  ylim(100, 120)+
   ggtitle('Indirect Riesz representer & No cross-fitting')
   
   
@@ -46,7 +46,7 @@ b = ggplot(no_cross_fit_results[1:100,])+
            label = paste0("Coverage: ", round(mean(no_cross_fit_results$riesz_coverage),5)), 
            hjust = 1.1, vjust = 2, 
            size = 4)+
-  ylim(95, 130)+
+  ylim(100, 120)+
   ggtitle('Direct Riesz representer & No cross-fitting')
   
 
@@ -66,7 +66,7 @@ c = ggplot(cross_fit_results[1:100,])+
            label = paste0("Coverage: ", round(mean(cross_fit_results$propensity_coverage),5)), 
            hjust = 1.1, vjust = 2, 
            size = 4)+
-  ylim(95, 130)+
+  ylim(100, 120)+
   ggtitle('Indirect Riesz representer & Cross-fitting')
 
 d = ggplot(cross_fit_results[1:100,])+
@@ -85,7 +85,7 @@ d = ggplot(cross_fit_results[1:100,])+
            label = paste0("Coverage: ", round(mean(cross_fit_results$riesz_coverage),5)), 
            hjust = 1.1, vjust = 2, 
            size = 4)+
-  ylim(95, 130)+
+  ylim(100, 120)+
   ggtitle('Direct Riesz representer & Cross-fitting')
   
 
