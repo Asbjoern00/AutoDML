@@ -9,6 +9,7 @@ np.random.seed(1)
 truth = 1.0
 n = 1000
 m = 1000
+n_folds = 5
 
 
 est_plugin = np.zeros(m)
@@ -31,12 +32,27 @@ lower_ci_propensity = np.zeros(m)
 
 for i in range(m):
     data = DatasetHighDim.simulate_dataset(n)
-    lassoR = LassoATE(RieszLasso)
-    lassoR.fit(data)
+    folds = data.split_into_folds(n_folds)
 
-    est_plugin[i] = lassoR.get_plugin(data)
+    correction_riesz = np.zeros_like(data.treatments.shape[0])
+    correction_propensity = np.zeros_like(data.treatments.shape[0])
+    functional = np.zeros_like(data.treatments.shape[0])
+    n_evaluated = 0
+    lassoR = LassoATE(RieszLasso)
+    lassoP = LassoATE(PropensityLasso)
+
+    for j in range(n_folds):
+        eval_data, train_data = data.get_fit_and_train_folds(folds, j)
+        n_eval_data = eval_data.treatments.shape[0]
+        lassoR.fit(train_data)
+        lassoP.fit(train_data)
+        functional[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_functional(eval_data)
+
+        n_evaluated = n_evaluated + n_eval_data
+
     print(f"Plugin MSE : {np.mean((est_plugin[:i+1]-truth)**2)}")
 
+    est_plugin[i] = lassoR.get_plugin(data)
     est_riesz[i] = lassoR.get_double_robust(data)
     var_riesz[i] = np.mean((lassoR.get_functional(data) - est_riesz[i] + lassoR.get_correction(data)) ** 2)
     lower_ci_riesz[i] = est_riesz[i] - 1.96 * np.sqrt(var_riesz[i] / n)
@@ -44,7 +60,6 @@ for i in range(m):
     covered_riesz[i] = (lower_ci_riesz[i] < truth) * (truth < upper_ci_riesz[i])
     print(f"Riesz MSE : {np.mean((est_riesz[:i+1]-truth)**2)}, coverage = {np.mean(covered_riesz[:i+1])}")
 
-    lassoP = LassoATE(PropensityLasso)
     lassoP.fit(data)
     est_propensity[i] = lassoP.get_double_robust(data)
     var_propensity[i] = np.mean((lassoP.get_functional(data) - est_propensity[i] + lassoP.get_correction(data)) ** 2)

@@ -2,6 +2,7 @@ import numpy as np
 from average_treatment_effect.lasso.md_lasso import md_lasso
 from sklearn.linear_model import LogisticRegressionCV
 
+
 class RieszLasso:
     def __init__(self, functional):
         self.functional = functional
@@ -11,14 +12,15 @@ class RieszLasso:
     def make_design_matrix(data, include_intercept=True):
         if include_intercept:
             design = np.concatenate(
-            [np.ones(data.treatments.shape[0]).reshape(-1,1), data.treatments.reshape(-1, 1), data.covariates], axis=1
-        )
+                [np.ones(data.treatments.shape[0]).reshape(-1, 1), data.treatments.reshape(-1, 1), data.covariates],
+                axis=1,
+            )
         else:
             design = np.concatenate([data.treatments.reshape(-1, 1), data.covariates], axis=1)
 
         return design
 
-    def fit(self, data, penalty = 0.05):
+    def fit(self, data, penalty=0.05):
         xb = self.make_design_matrix(data)
         mb = self.functional(data, self.make_design_matrix)
         hatM = np.mean(mb, axis=0)
@@ -27,7 +29,7 @@ class RieszLasso:
         rho = md_lasso(hatG, hatM, rL=penalty, rho_init=self.rho)
         self.rho = rho
 
-    def fit_cv(self,data,penalties = np.array([0.2,0.15,0.1,0.075,0.05]), n_folds = 5):
+    def fit_cv(self, data, penalties=np.array([0.2, 0.15, 0.1, 0.075, 0.05]), n_folds=5):
         folds = data.split_into_folds(n_folds)
         best_loss = np.inf
         best_rho = None
@@ -44,11 +46,11 @@ class RieszLasso:
                 best_loss = cur_loss
                 best_rho = penalty
 
-        self.fit(data,best_rho)
+        self.fit(data, best_rho)
 
-    def get_riesz_loss(self,data):
+    def get_riesz_loss(self, data):
         mb = self.functional(data, self.make_design_matrix)
-        loss = -2*mb@self.rho + self.get_riesz_representer(data)**2
+        loss = -2 * mb @ self.rho + self.get_riesz_representer(data) ** 2
         return np.mean(loss)
 
     def get_riesz_representer(self, data):
@@ -57,8 +59,8 @@ class RieszLasso:
 
 
 class PropensityLasso:
-    def __init__(self,_=None):
-        self.model = LogisticRegressionCV(penalty="l1", fit_intercept=True, solver = "liblinear")
+    def __init__(self, _=None):
+        self.model = LogisticRegressionCV(penalty="l1", fit_intercept=True, solver="liblinear")
 
     def fit(self, data):
         covariates = data.covariates
@@ -68,5 +70,7 @@ class PropensityLasso:
     def get_riesz_representer(self, data):
         covariates = data.covariates
         treatments = data.treatments
-        pi = self.model.predict_proba(covariates)[:,self.model.classes_ == 1].reshape(treatments.shape[0],)
-        return treatments/pi - (1-treatments)/(1-pi)
+        pi = self.model.predict_proba(covariates)[:, self.model.classes_ == 1].reshape(
+            treatments.shape[0],
+        )
+        return treatments / pi - (1 - treatments) / (1 - pi)

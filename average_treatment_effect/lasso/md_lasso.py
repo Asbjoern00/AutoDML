@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit
 
+
 @njit
 def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=5000, tol=1e-3):
     p = M.shape[0]
@@ -43,7 +44,7 @@ def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=5000, tol=1e-3):
                 rho[j] = new_rj
                 Grho += G[:, j] * delta
                 max_change = max(max_change, abs(delta))
-        #print(it, max_change)
+        # print(it, max_change)
 
         if max_change < tol:
             break
