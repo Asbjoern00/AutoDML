@@ -24,10 +24,3 @@ class OutcomeLASSO:
 
     def get_plugin_estimate(self,data):
         return np.mean(self.get_functional(data))
-
-
-
-
-
-
-

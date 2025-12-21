@@ -1,67 +1,31 @@
-from sklearn.preprocessing import PolynomialFeatures, SplineTransformer, StandardScaler
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
 import numpy as np
+from average_treatment_effect.lasso.OutcomeLASSO import OutcomeLASSO
+from average_treatment_effect.lasso.RieszLasso import RieszLasso
+from average_treatment_effect.Functional.ATEFunctional import ate_functional
 
-class CovariateExpander:
-    def __init__(self, spline_degree=3, monomial_degree=2):
-        self.spline_degree = spline_degree
-        self.poly = PolynomialFeatures(degree=monomial_degree, include_bias=False, interaction_only=True)
-        self.continuous_indices = None
-        self.passthrough_indices = None
-        self.preprocessor = None
-        self.purge_cols = None
+class LassoATE:
+    def __init__(self, riesz_model):
+        self.riesz_model = riesz_model(ate_functional)
+        self.outcome_model = OutcomeLASSO(ate_functional)
 
-    @staticmethod
-    def _is_numeric_binary(col):
-        unique = np.unique(col[~np.isnan(col)])
-        return len(unique) <= 2 and np.all(np.isclose(unique, unique.astype(int)))
+    def fit(self,data,cv_riesz = True):
+        self.outcome_model.fit(data)
+        if isinstance(self.riesz_model,RieszLasso) and cv_riesz:
+            self.riesz_model.fit_cv(data)
+        else:
+            self.riesz_model.fit(data)
 
-    def fit(self, x):
-        x = np.asarray(x)
+    def get_plugin(self,data):
+        return self.outcome_model.get_plugin_estimate(data)
 
-        # ---- Step 1: Polynomial expansion ----
-        x_poly = self.poly.fit_transform(x)
-        self.purge_cols = np.isclose(np.std(x_poly, axis=0), 0)  # Remove columns without variability
-        x_poly = x_poly[:, ~self.purge_cols]
+    def get_correction(self,data):
+        residuals = self.outcome_model.get_residuals(data)
+        rr = self.riesz_model.get_riesz_representer(data)
+        return residuals*rr
+    def get_functional(self,data):
+        return self.outcome_model.get_functional(data)
 
-        # ---- Step 2: Identify column types ----
-        continuous = []
-        passthrough = []
-
-        for i in range(x_poly.shape[1]):
-            if self._is_numeric_binary(x_poly[:, i]):
-                passthrough.append(i)
-            else:
-                continuous.append(i)
-
-        self.continuous_indices = continuous
-        self.passthrough_indices = passthrough
-
-        self.preprocessor = ColumnTransformer(
-            transformers=[
-                (
-                    "spline",
-                    Pipeline(
-                        [
-                            ("spline", SplineTransformer(n_knots=3, degree=self.spline_degree, include_bias=False)),
-                            ("scaler", StandardScaler()),
-                        ]
-                    ),
-                    continuous,
-                ),
-                ("passthrough", Pipeline([("scaler", StandardScaler())]), passthrough),
-            ]
-        )
-
-        self.preprocessor.fit(x_poly)
-        return self
-
-    def transform(self, x):
-        x = np.asarray(x)
-        x_poly = self.poly.transform(x)
-        x_poly = x_poly[:, ~self.purge_cols]
-        x_splined = self.preprocessor.transform(x_poly)
-        x_out = np.concatenate([x_splined, np.ones((x_poly.shape[0], 1))], axis=1)
-
-        return x_out
+    def get_double_robust(self,data):
+        plugin = self.get_plugin(data)
+        correction = self.get_correction(data)
+        return plugin+np.mean(correction)
