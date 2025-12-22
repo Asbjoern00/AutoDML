@@ -4,7 +4,7 @@ from sklearn.linear_model import LassoCV
 
 class OutcomeLASSO:
     def __init__(self, functional):
-        self.model = LassoCV(fit_intercept=True)
+        self.model = LassoCV(fit_intercept=True, n_jobs=5)
         self.functional = functional
 
     def fit(self, data):
