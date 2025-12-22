@@ -3,7 +3,7 @@ from numba import njit
 
 
 @njit
-def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=5000, tol=1e-3):
+def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=200, tol=1e-3):
     p = M.shape[0]
 
     if D is None:
