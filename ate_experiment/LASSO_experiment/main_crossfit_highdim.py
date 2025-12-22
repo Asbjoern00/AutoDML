@@ -1,8 +1,9 @@
 import numpy as np
 from ate_experiment.dataset_highdim import DatasetHighDim
-from LASSO.LassoClass import LassoATE
-from LASSO import RieszLasso, PropensityLasso
+from LASSO.LassoClass import Lasso
+from LASSO.RieszLasso import RieszLasso, PropensityLasso
 import os.path
+from average_treatment_effect.Functional import ATEFunctional
 
 
 np.random.seed(1)
@@ -61,8 +62,8 @@ for i in range(m):
         correction_propensity = np.zeros(data.treatments.shape[0])
         functional = np.zeros(data.treatments.shape[0])
         n_evaluated = 0
-        lassoR = LassoATE(RieszLasso)
-        lassoP = LassoATE(PropensityLasso)
+        lassoR = Lasso(RieszLasso, ATEFunctional)
+        lassoP = Lasso(PropensityLasso,ATEFunctional)
 
         for j in range(n_folds):
             eval_data, train_data = data.get_fit_and_train_folds(folds, j)

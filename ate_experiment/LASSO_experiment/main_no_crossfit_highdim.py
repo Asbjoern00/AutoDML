@@ -1,7 +1,7 @@
 import numpy as np
 from ate_experiment.dataset_highdim import DatasetHighDim
-from LASSO.LassoClass import LassoATE
-from LASSO import RieszLasso, PropensityLasso
+from LASSO.LassoClass import Lasso
+from LASSO.RieszLasso import RieszLasso, PropensityLasso
 
 np.random.seed(1)
 

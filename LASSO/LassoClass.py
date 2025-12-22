@@ -1,13 +1,12 @@
 import numpy as np
 from LASSO.OutcomeLASSO import OutcomeLASSO
 from LASSO.RieszLasso import RieszLasso
-from average_treatment_effect.Functional.ATEFunctional import ate_functional
 
 
-class LassoATE:
-    def __init__(self, riesz_model):
-        self.riesz_model = riesz_model(ate_functional)
-        self.outcome_model = OutcomeLASSO(ate_functional)
+class Lasso:
+    def __init__(self, riesz_model, functional):
+        self.riesz_model = riesz_model(functional)
+        self.outcome_model = OutcomeLASSO(functional)
 
     def fit(self, data, cv_riesz=True):
         self.outcome_model.fit(data)
