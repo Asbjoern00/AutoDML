@@ -1,5 +1,5 @@
 import numpy as np
-from average_treatment_effect.lasso.md_lasso import md_lasso
+from LASSO.md_lasso import md_lasso
 from sklearn.linear_model import LogisticRegressionCV
 
 

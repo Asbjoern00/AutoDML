@@ -1,8 +1,7 @@
 import numpy as np
 from ate_experiment.dataset_highdim import DatasetHighDim
-from average_treatment_effect.lasso.LassoClass import LassoATE
-from average_treatment_effect.lasso.RieszLasso import RieszLasso, PropensityLasso
-from average_treatment_effect.Functional.ATEFunctional import ate_functional
+from LASSO.LassoClass import LassoATE
+from LASSO import RieszLasso, PropensityLasso
 
 np.random.seed(1)
 

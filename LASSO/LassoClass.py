@@ -1,6 +1,6 @@
 import numpy as np
-from average_treatment_effect.lasso.OutcomeLASSO import OutcomeLASSO
-from average_treatment_effect.lasso.RieszLasso import RieszLasso
+from LASSO.OutcomeLASSO import OutcomeLASSO
+from LASSO.RieszLasso import RieszLasso
 from average_treatment_effect.Functional.ATEFunctional import ate_functional
 
 
