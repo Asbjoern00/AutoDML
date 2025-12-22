@@ -70,7 +70,7 @@ c = ggplot(cross_fit_results[1:100,])+
   ggtitle('Indirect Riesz representer & Cross-fitting')
 
 d = ggplot(cross_fit_results[1:100,])+
-  geom_segment(aes(x=index, y=propensity_lower,xend=index, yend=riesz_upper, color = as.factor(riesz_coverage)))+
+  geom_segment(aes(x=index, y=riesz_lower,xend=index, yend=riesz_upper, color = as.factor(riesz_coverage)))+
   geom_point(aes(x=index, y=riesz_estimate))+
   theme_classic()+
   scale_color_manual(                      
