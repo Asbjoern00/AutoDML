@@ -59,7 +59,7 @@ class RieszLasso:
 
 
 class PropensityLasso:
-    def __init__(self, _=None):
+    def __init__(self):
         self.model = LogisticRegressionCV(penalty="l1", fit_intercept=True, solver="liblinear", n_jobs=5, Cs=10)
 
     def fit(self, data):

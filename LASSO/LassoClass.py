@@ -4,9 +4,9 @@ from LASSO.RieszLasso import RieszLasso
 
 
 class Lasso:
-    def __init__(self, riesz_model, functional):
-        self.riesz_model = riesz_model(functional)
-        self.outcome_model = OutcomeLASSO(functional)
+    def __init__(self, riesz_model, outcome_model):
+        self.riesz_model = riesz_model
+        self.outcome_model = outcome_model
 
     def fit(self, data, cv_riesz=True):
         self.outcome_model.fit(data)

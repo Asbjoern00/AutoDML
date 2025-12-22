@@ -1,7 +1,9 @@
 import numpy as np
 from ate_experiment.dataset_highdim import DatasetHighDim
 from LASSO.LassoClass import Lasso
+from LASSO.OutcomeLASSO import OutcomeLASSO
 from LASSO.RieszLasso import RieszLasso, PropensityLasso
+from average_treatment_effect.Functional.ATEFunctional import ate_functional
 
 np.random.seed(1)
 
@@ -30,7 +32,9 @@ lower_ci_propensity = np.zeros(m)
 
 for i in range(m):
     data = DatasetHighDim.simulate_dataset(n)
-    lassoR = LassoATE(RieszLasso)
+    outcome_lasso = OutcomeLASSO(ate_functional)
+    riesz_lasso = RieszLasso(ate_functional)
+    lassoR = Lasso(riesz_lasso,outcome_lasso)
     lassoR.fit(data)
 
     est_plugin[i] = lassoR.get_plugin(data)
@@ -43,7 +47,8 @@ for i in range(m):
     covered_riesz[i] = (lower_ci_riesz[i] < truth) * (truth < upper_ci_riesz[i])
     print(f"Riesz MSE : {np.mean((est_riesz[:i+1]-truth)**2)}, coverage = {np.mean(covered_riesz[:i+1])}")
 
-    lassoP = LassoATE(PropensityLasso)
+    propensity_lasso = PropensityLasso()
+    lassoP = Lasso(propensity_lasso,outcome_lasso)
     lassoP.fit(data)
     est_propensity[i] = lassoP.get_double_robust(data)
     var_propensity[i] = np.mean((lassoP.get_functional(data) - est_propensity[i] + lassoP.get_correction(data)) ** 2)
