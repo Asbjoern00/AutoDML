@@ -10,9 +10,9 @@ class RieszNetLoss(nn.Module):
         self.tmle_weight = tmle_weight
         self.outcome_mse_weight = outcome_mse_weight
 
-    def forward(self, rr_output, rr_functional, outcome_prediction, outcome, epsilon):
+    def forward(self, rr_output, rr_functional, outcome_prediction, adjusted_outcome_prediction, outcome):
         mse = F.mse_loss(outcome_prediction, outcome)
-        tmle_loss = F.mse_loss(outcome - outcome_prediction, epsilon * rr_output)
+        tmle_loss = F.mse_loss(adjusted_outcome_prediction,outcome)
         rr_loss = torch.mean(rr_output**2) - 2 * torch.mean(rr_functional)
         loss = tmle_loss * self.tmle_weight + rr_loss * self.rr_weight + mse * self.outcome_mse_weight
         return loss
