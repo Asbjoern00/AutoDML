@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from RieszNet.utilities import make_sequential
+import numpy as np
+
 
 class ATERieszNetwork(nn.Module):
     def __init__(
@@ -43,16 +45,44 @@ class ATERieszNetwork(nn.Module):
 
         self.epsilon = nn.Parameter(torch.zeros(1))
 
-    def _forward_shared(self, x):
+    def _forward_shared(self, data):
+        treatments = data.treatments_tensor
+        covariates = data.covariates_tensor
+        x = torch.cat((treatments, covariates), dim=1)
         return self.shared(x)
 
-    def _evaluate_riesz(self, x):
-        z = self._forward_shared(x)
+    def _evaluate_regression(self, data):
+        outcome_prediction = self.forward(data)[2]
+        return outcome_prediction
+
+    def get_riesz_representer(self, data):
+        z = self._forward_shared(data)
         return self.rr_head(z)
+
+    def get_plugin_estimate(self, data):
+        functional = self.get_functional(data)
+        return np.mean(functional.numpy())
+
+    def get_residuals(self,data):
+        fitted = self._evaluate_regression(data)
+        return data.outcomes_tensor - fitted
+
+    def get_functional(self, data):
+        return self.functional(data, self._evaluate_regression)
+
+    def get_correction(self, data):
+        residuals = self.get_residuals(data)
+        rr = self.get_riesz_representer(data)
+        return rr*residuals
+
+    def get_double_robust(self,data):
+        plugin = self.get_plugin_estimate(data)
+        correction = self.get_correction(data)
+        return plugin+np.mean(correction.numpy())
 
     def forward(self, data):
         # Riesz functional
-        rr_functional = self.functional(data, self._evaluate_riesz)
+        rr_functional = self.functional(data, self.get_riesz_representer)
 
         # Shared representation
         z = self._forward_shared(data)
@@ -63,7 +93,7 @@ class ATERieszNetwork(nn.Module):
         y_untreated = self.untreated_head(z)
 
         # Treatment indicator assumed in column 0
-        t = data[:, [0]]
+        t = data.treatments_tensor
         outcome_prediction = t * y_treated + (1 - t) * y_untreated
 
         return rr_output, rr_functional, outcome_prediction, self.epsilon
