@@ -103,17 +103,17 @@ class Dataset:
 
     @property
     def outcomes_tensor(self):
-        outcomes = self.outcomes
-        return torch.from_numpy(outcomes)
+        outcomes = self.outcomes.astype(np.float32)
+        return torch.from_numpy(outcomes).reshape(-1,1)
 
     @property
     def treatments_tensor(self):
-        treatments = self.treatments
-        return torch.from_numpy(treatments)
+        treatments = self.treatments.astype(np.float32)
+        return torch.from_numpy(treatments).reshape(-1,1)
 
     @property
     def covariates_tensor(self):
-        covariates = self.covariates
+        covariates = self.covariates.astype(np.float32)
         return torch.from_numpy(covariates)
 
     @property
