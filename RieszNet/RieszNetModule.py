@@ -49,12 +49,10 @@ class RieszNetModule:
         return self.network.get_plugin_estimate(data)
 
     def get_correction(self, data):
-        residuals = self.network.get_residuals(data)
-        rr = self.network.get_riesz_representer(data)
-        return residuals * rr
+        return self.network.get_correction(data).detach().numpy()
 
     def get_functional(self, data):
-        return self.network.get_functional(data)
+        return self.network.get_functional(data).detach().numpy()
 
     def get_double_robust(self, data):
         return self.network.get_double_robust(data)
