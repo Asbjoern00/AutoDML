@@ -1,5 +1,6 @@
 import numpy as np
 import xgboost as xgb
+import torch
 
 
 class Dataset:
@@ -99,6 +100,21 @@ class Dataset:
     @property
     def covariates(self):
         return self.raw_data[:, self.covariate_columns]
+
+    @property
+    def outcomes_tensor(self):
+        outcomes = self.outcomes
+        return torch.from_numpy(outcomes)
+
+    @property
+    def treatments_tensor(self):
+        treatments = self.treatments
+        return torch.from_numpy(treatments)
+
+    @property
+    def covariates_tensor(self):
+        covariates = self.covariates
+        return torch.from_numpy(covariates)
 
     @property
     def xgb_dataset(self):
