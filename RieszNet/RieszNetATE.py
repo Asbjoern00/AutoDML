@@ -52,8 +52,8 @@ class ATERieszNetwork(nn.Module):
         return self.shared(x)
 
     def _evaluate_regression(self, data):
-        outcome_prediction = self.forward(data)[2]
-        return outcome_prediction
+        adjusted_outcome_prediction = self.forward(data)[3]
+        return adjusted_outcome_prediction
 
     def get_riesz_representer(self, data):
         z = self._forward_shared(data)
@@ -61,9 +61,9 @@ class ATERieszNetwork(nn.Module):
 
     def get_plugin_estimate(self, data):
         functional = self.get_functional(data)
-        return np.mean(functional.numpy())
+        return np.mean(functional.detach().numpy())
 
-    def get_residuals(self,data):
+    def get_residuals(self, data):
         fitted = self._evaluate_regression(data)
         return data.outcomes_tensor - fitted
 
@@ -73,12 +73,12 @@ class ATERieszNetwork(nn.Module):
     def get_correction(self, data):
         residuals = self.get_residuals(data)
         rr = self.get_riesz_representer(data)
-        return rr*residuals
+        return rr * residuals
 
-    def get_double_robust(self,data):
+    def get_double_robust(self, data):
         plugin = self.get_plugin_estimate(data)
         correction = self.get_correction(data)
-        return plugin+np.mean(correction.numpy())
+        return plugin + np.mean(correction.detach().numpy())
 
     def forward(self, data):
         # Riesz functional
@@ -95,5 +95,6 @@ class ATERieszNetwork(nn.Module):
         # Treatment indicator assumed in column 0
         t = data.treatments_tensor
         outcome_prediction = t * y_treated + (1 - t) * y_untreated
+        adjusted_outcome_prediction = outcome_prediction + self.epsilon * rr_output
 
-        return rr_output, rr_functional, outcome_prediction, self.epsilon
+        return rr_output, rr_functional, outcome_prediction, adjusted_outcome_prediction
