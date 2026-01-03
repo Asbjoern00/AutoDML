@@ -1,13 +1,10 @@
 import numpy as np
 from ase_experiment.dataset_highdim import DatasetHighDim
 from LASSO.LassoClass import Lasso
-from LASSO.RieszLasso import RieszLasso
+from LASSO.RieszLasso import RieszLasso,ASETreatmentLasso
 from LASSO.OutcomeLASSO import OutcomeLASSO
 from sklearn.linear_model import LassoCV
-# from ase_experiment.lasso_experiment.OracleLasso import OracleLasso
 from ase_experiment.Functional.ASEFunctional import ase_functional
-from ase_experiment.lasso_experiment.KDEestimator import ResidualKDE
-
 
 np.random.seed(1)
 
@@ -38,7 +35,7 @@ for i in range(m):
     data = DatasetHighDim.simulate_dataset(n)
 
     riesz_lasso = RieszLasso(ase_functional)
-    indirect_riesz = ResidualKDE(model=LassoCV(fit_intercept=True, n_jobs=5))
+    indirect_riesz = ASETreatmentLasso()
     outcome_lasso = OutcomeLASSO(ase_functional)
 
     lassoR = Lasso(riesz_lasso,outcome_lasso)
