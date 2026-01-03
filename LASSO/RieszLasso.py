@@ -73,4 +73,9 @@ class PropensityLasso:
         pi = self.model.predict_proba(covariates)[:, self.model.classes_ == 1].reshape(
             treatments.shape[0],
         )
+
+        clip_lower = 1 / 1000
+        clip_upper = 1 - 1 / 1000
+        pi = np.clip(pi, clip_lower, clip_upper)
+
         return treatments / pi - (1 - treatments) / (1 - pi)
