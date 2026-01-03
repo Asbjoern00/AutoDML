@@ -1,6 +1,6 @@
 import numpy as np
 from LASSO.md_lasso import md_lasso
-from sklearn.linear_model import LogisticRegressionCV
+from sklearn.linear_model import LogisticRegressionCV, LassoCV
 
 
 class RieszLasso:
@@ -79,3 +79,29 @@ class PropensityLasso:
         pi = np.clip(pi, clip_lower, clip_upper)
 
         return treatments / pi - (1 - treatments) / (1 - pi)
+
+
+class ASETreatmentLasso:
+    def __init__(self):
+        self.model = LassoCV(fit_intercept=True, n_jobs=5)
+
+    def fit(self, data):
+        covariates = data.covariates
+        treatments = data.treatments
+        self.model.fit(covariates, treatments)
+
+    @staticmethod
+    def _gaussian_density_ratio(u, mu, variance=1, shift=1):
+        return np.exp(-1 / (2 * variance) * (u - shift - mu) ** 2) / np.exp(-1 / (2 * variance) * (u - mu) ** 2) - 1
+
+    def get_riesz_representer(self, data):
+        covariates = data.covariates
+        treatments = data.treatments
+        mean_outcome = self.model.predict(covariates)
+        density_ratio = self._gaussian_density_ratio(treatments,mean_outcome)
+
+        clip_lower = -1000
+        clip_upper = 1000
+        rr = np.clip(density_ratio, clip_lower, clip_upper)
+
+        return rr
