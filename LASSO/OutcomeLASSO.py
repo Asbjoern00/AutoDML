@@ -29,7 +29,7 @@ class OutcomeLASSO:
 
     def get_active_covariate_indices(self):
         coef = self.model.coef_
-        non_zero_indices = np.nonzero(coef)
+        non_zero_indices = np.nonzero(coef)[0]
         non_zero_covariate_indices = non_zero_indices[non_zero_indices != 0] # treatment is located at index 0. exclude
         non_zero_covariate_indices = non_zero_covariate_indices - np.array(1) # treatment is located at index 0, shift rest of array
 

@@ -1,5 +1,4 @@
 import numpy as np
-from LASSO.OutcomeLASSO import OutcomeLASSO
 from LASSO.RieszLasso import RieszLasso
 
 
@@ -30,3 +29,14 @@ class Lasso:
         plugin = self.get_plugin(data)
         correction = self.get_correction(data)
         return plugin + np.mean(correction)
+
+class OutcomeAdaptedLasso(Lasso):
+    def __init__(self, riesz_model, outcome_model):
+        super().__init__(riesz_model, outcome_model)
+
+    def fit(self, data,cv_riesz=None):
+        self.outcome_model.fit(data)
+        active_covariate_indices = self.outcome_model.get_active_covariate_indices()
+        print(len(active_covariate_indices))
+        self.riesz_model.set_covariate_indices(active_covariate_indices)
+        self.riesz_model.fit_cv(data, penalties=np.array([0.2, 0.15, 0.1, 0.075, 0.05,0]))
