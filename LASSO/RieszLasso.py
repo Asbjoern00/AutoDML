@@ -74,8 +74,8 @@ class PropensityLasso:
             treatments.shape[0],
         )
 
-        clip_lower = 1 / 1000
-        clip_upper = 1 - 1 / 1000
+        clip_lower = 1 / 100
+        clip_upper = 1 - 1 / 100
         pi = np.clip(pi, clip_lower, clip_upper)
 
         return treatments / pi - (1 - treatments) / (1 - pi)
@@ -100,8 +100,8 @@ class ASETreatmentLasso:
         mean_outcome = self.model.predict(covariates)
         density_ratio = self._gaussian_density_ratio(treatments,mean_outcome)
 
-        clip_lower = -1000
-        clip_upper = 1000
+        clip_lower = -100
+        clip_upper = 100
         rr = np.clip(density_ratio, clip_lower, clip_upper)
 
         return rr
