@@ -7,29 +7,38 @@ class RieszLasso:
     def __init__(self, functional):
         self.functional = functional
         self.rho = None
+        self.covariate_indices = None
 
-    @staticmethod
-    def make_design_matrix(data, include_intercept=True, covariate_indices = None):
-        if covariate_indices is None:
+    def set_covariate_indices(self, covariate_indices):
+        self.covariate_indices = covariate_indices
+
+    def make_design_matrix(self,data):
+        if self.covariate_indices is None:
             covariate_indices = np.arange(data.covariates.shape[1], dtype=np.int32)
+        else:
+            covariate_indices = self.covariate_indices
 
-        if include_intercept:
-            design = np.concatenate(
-                [np.ones(data.treatments.shape[0]).reshape(-1, 1), data.treatments.reshape(-1, 1), data.covariates[:,covariate_indices]],
+        design = np.concatenate(
+                [
+                    data.treatments.reshape(-1, 1),
+                    data.covariates[:, covariate_indices],
+                    np.ones(data.treatments.shape[0]).reshape(-1, 1)
+                ],
                 axis=1,
             )
-        else:
-            design = np.concatenate([data.treatments.reshape(-1, 1), data.covariates[:,covariate_indices]], axis=1)
 
         return design
 
     def fit(self, data, penalty=0.05):
         xb = self.make_design_matrix(data)
-        mb = self.functional(data, self.make_design_matrix)
+        mb = self.functional(data,self.make_design_matrix)
         hatM = np.mean(mb, axis=0)
         hatG = 1 / xb.shape[0] * (xb.T @ xb)
-        # If rho is already fitted, warm state from rho
-        rho = md_lasso(hatG, hatM, rL=penalty, rho_init=self.rho)
+
+        if penalty > 0:
+            rho = md_lasso(hatG, hatM, rL=penalty, rho_init=self.rho)  # If rho is already fitted, warm state from rho
+        else:
+            rho = np.linalg.solve(hatG, hatM)
         self.rho = rho
 
     def fit_cv(self, data, penalties=np.array([0.2, 0.15, 0.1, 0.075, 0.05]), n_folds=5):
@@ -101,7 +110,7 @@ class ASETreatmentLasso:
         covariates = data.covariates
         treatments = data.treatments
         mean_outcome = self.model.predict(covariates)
-        density_ratio = self._gaussian_density_ratio(treatments,mean_outcome)
+        density_ratio = self._gaussian_density_ratio(treatments, mean_outcome)
 
         clip_lower = -100
         clip_upper = 100

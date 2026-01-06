@@ -26,7 +26,7 @@ def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=200, tol=1e-3):
             # π_j = M_j − (Gρ)_j + G_jj ρ_j
             pi_j = M[j] - Grho[j] + z[j] * rho[j]
 
-            if j == 0:
+            if j == p-1:
                 # intercept: no penalty
                 new_rj = pi_j / z[j]
             else:
