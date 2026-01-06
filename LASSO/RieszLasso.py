@@ -9,14 +9,17 @@ class RieszLasso:
         self.rho = None
 
     @staticmethod
-    def make_design_matrix(data, include_intercept=True):
+    def make_design_matrix(data, include_intercept=True, covariate_indices = None):
+        if covariate_indices is None:
+            covariate_indices = np.arange(data.covariates.shape[1], dtype=np.int32)
+
         if include_intercept:
             design = np.concatenate(
-                [np.ones(data.treatments.shape[0]).reshape(-1, 1), data.treatments.reshape(-1, 1), data.covariates],
+                [np.ones(data.treatments.shape[0]).reshape(-1, 1), data.treatments.reshape(-1, 1), data.covariates[:,covariate_indices]],
                 axis=1,
             )
         else:
-            design = np.concatenate([data.treatments.reshape(-1, 1), data.covariates], axis=1)
+            design = np.concatenate([data.treatments.reshape(-1, 1), data.covariates[:,covariate_indices]], axis=1)
 
         return design
 
