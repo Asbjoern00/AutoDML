@@ -3,7 +3,6 @@ from ase_experiment.dataset_highdim import DatasetHighDim
 from LASSO.LassoClass import Lasso
 from LASSO.RieszLasso import RieszLasso,ASETreatmentLasso
 from LASSO.OutcomeLASSO import OutcomeLASSO
-from sklearn.linear_model import LassoCV
 from ase_experiment.Functional.ASEFunctional import ase_functional
 
 np.random.seed(1)

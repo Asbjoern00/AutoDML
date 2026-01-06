@@ -61,7 +61,8 @@ for i in range(m):
     if i >= n_already_run:
         correction_riesz = np.zeros(data.treatments.shape[0])
         correction_propensity = np.zeros(data.treatments.shape[0])
-        functional = np.zeros(data.treatments.shape[0])
+        functional_riesz = np.zeros(data.treatments.shape[0])
+        functional_propensity = np.zeros(data.treatments.shape[0])
         n_evaluated = 0
 
         riesz_lasso = RieszLasso(ate_functional)
@@ -75,22 +76,23 @@ for i in range(m):
             n_eval_data = eval_data.treatments.shape[0]
             lassoR.fit(train_data)
             lassoP.fit(train_data)
-            functional[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_functional(eval_data)
+
+            functional_riesz[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_functional(eval_data)
+            functional_propensity[n_evaluated : n_evaluated + n_eval_data] = lassoP.get_functional(eval_data)
+
             correction_riesz[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_correction(eval_data)
             correction_propensity[n_evaluated : n_evaluated + n_eval_data] = lassoP.get_correction(eval_data)
             n_evaluated = n_evaluated + n_eval_data
 
-        est_plugin[i] = np.mean(functional)
-
-
+        est_plugin[i] = np.mean(functional_riesz)
 
         est_riesz[i] = np.mean(est_plugin[i] + correction_riesz)
-        var_riesz[i] = np.mean((functional - est_riesz[i] + correction_riesz) ** 2)
+        var_riesz[i] = np.mean((functional_riesz - est_riesz[i] + correction_riesz) ** 2)
         lower_ci_riesz[i] = est_riesz[i] - 1.96 * np.sqrt(var_riesz[i] / n)
         upper_ci_riesz[i] = est_riesz[i] + 1.96 * np.sqrt(var_riesz[i] / n)
 
         est_propensity[i] = np.mean(est_plugin[i] + correction_propensity)
-        var_propensity[i] = np.mean((functional - est_propensity[i] + correction_propensity) ** 2)
+        var_propensity[i] = np.mean((functional_propensity - est_propensity[i] + correction_propensity) ** 2)
         lower_ci_propensity[i] = est_propensity[i] - 1.96 * np.sqrt(var_propensity[i] / n)
         upper_ci_propensity[i] = est_propensity[i] + 1.96 * np.sqrt(var_propensity[i] / n)
 
