@@ -1,16 +1,16 @@
 import numpy as np
 from LASSO.RieszLasso import RieszLasso
 
-
 class Lasso:
     def __init__(self, riesz_model, outcome_model):
         self.riesz_model = riesz_model
         self.outcome_model = outcome_model
 
-    def fit(self, data, cv_riesz=True):
-        self.outcome_model.fit(data)
-        if isinstance(self.riesz_model, RieszLasso) and cv_riesz:
-            self.riesz_model.fit_cv(data)
+    def fit(self, data, cv_riesz_c1s=None, fit_outcome_model=True):
+        if fit_outcome_model:
+            self.outcome_model.fit(data)
+        if cv_riesz_c1s is not None:
+            self.riesz_model.fit_cv(data, cv_riesz_c1s)
         else:
             self.riesz_model.fit(data)
 
@@ -34,9 +34,13 @@ class OutcomeAdaptedLasso(Lasso):
     def __init__(self, riesz_model, outcome_model):
         super().__init__(riesz_model, outcome_model)
 
-    def fit(self, data,cv_riesz=None):
-        self.outcome_model.fit(data)
+    def fit(self, data,cv_riesz_c1s=None,fit_outcome_model=True):
+        if fit_outcome_model:
+            self.outcome_model.fit(data)
         active_covariate_indices = self.outcome_model.get_active_covariate_indices()
-        print(len(active_covariate_indices))
         self.riesz_model.set_covariate_indices(active_covariate_indices)
-        self.riesz_model.fit_cv(data, penalties=np.array([0.2, 0.15, 0.1, 0.075, 0.05,0]))
+
+        if cv_riesz_c1s is not None and isinstance(self.riesz_model, RieszLasso):
+            self.riesz_model.fit_cv(data, cv_riesz_c1s)
+        else:
+            self.riesz_model.fit(data)

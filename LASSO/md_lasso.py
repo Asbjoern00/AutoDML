@@ -8,8 +8,6 @@ def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=200, tol=1e-3):
 
     if D is None:
         D = np.ones(p)
-    D = D.copy()
-    D[0] = 0.0  # intercept is not penalized
 
     if rho_init is None:
         rho = np.zeros(p)
@@ -26,18 +24,14 @@ def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=200, tol=1e-3):
             # π_j = M_j − (Gρ)_j + G_jj ρ_j
             pi_j = M[j] - Grho[j] + z[j] * rho[j]
 
-            if j == p-1:
-                # intercept: no penalty
-                new_rj = pi_j / z[j]
-            else:
-                thresh = D[j] * rL
+            thresh = D[j] * rL
 
-                if pi_j < -thresh:
-                    new_rj = (pi_j + thresh) / z[j]
-                elif pi_j > thresh:
-                    new_rj = (pi_j - thresh) / z[j]
-                else:
-                    new_rj = 0.0
+            if pi_j < -thresh:
+                new_rj = (pi_j + thresh) / z[j]
+            elif pi_j > thresh:
+                new_rj = (pi_j - thresh) / z[j]
+            else:
+                new_rj = 0.0
 
             delta = new_rj - rho[j]
             if delta != 0.0:
@@ -50,3 +44,13 @@ def md_lasso(G, M, rL, D=None, rho_init=None, max_iter=200, tol=1e-3):
             break
 
     return rho
+
+
+def compute_loadings(xb, mb, rho, c3=0.1, intercept_indices = np.array([0])):
+    # shape: (n,)
+    t = xb @ rho
+    # shape: (n,p)
+    residual = xb * t[:, None] - mb
+    hatD = np.mean(residual * residual, axis=0) + 0.2 # 0.2 for stability according to Chernuzhukov
+    hatD[intercept_indices] *= c3
+    return np.sqrt(hatD)

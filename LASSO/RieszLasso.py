@@ -1,5 +1,6 @@
 import numpy as np
-from LASSO.md_lasso import md_lasso
+from scipy.stats import norm
+from LASSO.md_lasso import md_lasso, compute_loadings
 from sklearn.linear_model import LogisticRegressionCV, LassoCV
 
 
@@ -12,53 +13,88 @@ class RieszLasso:
     def set_covariate_indices(self, covariate_indices):
         self.covariate_indices = covariate_indices
 
-    def make_design_matrix(self,data):
+    def make_design_matrix(self, data, low_dimensional=False):
+
         if self.covariate_indices is None:
             covariate_indices = np.arange(data.covariates.shape[1], dtype=np.int32)
         else:
             covariate_indices = self.covariate_indices
 
+        if low_dimensional:
+            covariate_indices = covariate_indices[: np.ceil(len(covariate_indices) / 40).astype(np.int32)]
+
         design = np.concatenate(
-                [
-                    data.treatments.reshape(-1, 1),
-                    data.covariates[:, covariate_indices],
-                    np.ones(data.treatments.shape[0]).reshape(-1, 1)
-                ],
-                axis=1,
-            )
+            [
+                data.treatments.reshape(-1, 1),
+                data.covariates[:, covariate_indices],
+                np.ones(data.treatments.shape[0]).reshape(-1, 1),
+            ],
+            axis=1,
+        )
 
         return design
 
-    def fit(self, data, penalty=0.05):
+    def fit(self, data, c1=0.9, max_it=100, tol = 0.001):
+
         xb = self.make_design_matrix(data)
-        mb = self.functional(data,self.make_design_matrix)
+        n, p = xb.shape[0], xb.shape[1]
+        intercept_indices = np.array([p-1])
+        mb = self.functional(data, self.make_design_matrix)
         hatM = np.mean(mb, axis=0)
-        hatG = 1 / xb.shape[0] * (xb.T @ xb)
+        hatG = 1 / n * (xb.T @ xb)
+
+        c2 = 0.1
+        penalty = c1 / np.sqrt(n) * norm.ppf(1 - c2 / (2 * p))
 
         if penalty > 0:
-            rho = md_lasso(hatG, hatM, rL=penalty, rho_init=self.rho)  # If rho is already fitted, warm state from rho
+            xb_low = self.make_design_matrix(data, low_dimensional=True)
+            mb_low = self.functional(data, lambda x: self.make_design_matrix(x, low_dimensional=True))
+            hatM_low = np.mean(mb_low, axis=0)
+            hatG_low = 1 / n * (xb_low.T @ xb_low)
+
+            rho_init = np.zeros(xb.shape[1])
+            rho_init_fit = np.linalg.solve(hatG_low, hatM_low)
+            rho_init[: len(rho_init_fit)] = rho_init_fit
+
+            for m in range(max_it):
+                hatD = compute_loadings(xb, mb, rho_init, c3=0.1, intercept_indices=intercept_indices)
+                rho = md_lasso(hatG, hatM, D=hatD, rL=penalty, rho_init=rho_init, max_iter=10)
+
+                diff = rho_init - rho
+                max_change = np.max(np.abs(diff))
+
+                if max_change < tol:
+                    break
+                else:
+                    rho_init = rho
         else:
             rho = np.linalg.solve(hatG, hatM)
+
         self.rho = rho
 
-    def fit_cv(self, data, penalties=np.array([0.2, 0.15, 0.1, 0.075, 0.05]), n_folds=5):
-        folds = data.split_into_folds(n_folds)
-        best_loss = np.inf
-        best_rho = None
+    def fit_cv(self, data, c1s=np.array([5 / 4, 3 / 4, 1 / 2]), n_folds=5):
+        if isinstance(c1s, float):
+            self.fit(data, c1s)
+        else:
+            folds = data.split_into_folds(n_folds)
+            best_loss = np.inf
+            best_c1 = None
 
-        for penalty in penalties:
-            cur_loss = 0
-            for i in range(n_folds):
-                test_data, train_data = data.get_fit_and_train_folds(folds, i)
-                self.fit(train_data, penalty)
-                riesz_loss = self.get_riesz_loss(test_data)
-                cur_loss += riesz_loss
+            for c1 in c1s:
+                cur_loss = 0
+                for i in range(n_folds):
+                    test_data, train_data = data.get_fit_and_train_folds(folds, i)
+                    self.fit(train_data, c1)
+                    riesz_loss = self.get_riesz_loss(test_data)
+                    cur_loss += riesz_loss
 
-            if cur_loss < best_loss:
-                best_loss = cur_loss
-                best_rho = penalty
+                if cur_loss < best_loss:
+                    best_loss = cur_loss
+                    best_c1 = c1
 
-        self.fit(data, best_rho)
+                print(c1, cur_loss)
+
+            self.fit(data, best_c1)
 
     def get_riesz_loss(self, data):
         mb = self.functional(data, self.make_design_matrix)
@@ -72,15 +108,30 @@ class RieszLasso:
 
 class PropensityLasso:
     def __init__(self):
-        self.model = LogisticRegressionCV(penalty="l1", fit_intercept=True, solver="liblinear", n_jobs=5, Cs=10)
+        self.model = LogisticRegressionCV(
+            penalty="l1", fit_intercept=True, solver="liblinear", n_jobs=5, Cs=10, scoring="neg_log_loss", tol = 0.001
+        )
+        self.covariate_indices = None
+
+    def make_design_matrix(self, data):
+
+        if self.covariate_indices is None:
+            covariate_indices = np.arange(data.covariates.shape[1], dtype=np.int32)
+        else:
+            covariate_indices = self.covariate_indices
+
+        return data.covariates[:, covariate_indices]
+
+    def set_covariate_indices(self, covariate_indices):
+        self.covariate_indices = covariate_indices
 
     def fit(self, data):
-        covariates = data.covariates
+        covariates = self.make_design_matrix(data)
         treatments = data.treatments
         self.model.fit(covariates, treatments)
 
     def get_riesz_representer(self, data):
-        covariates = data.covariates
+        covariates = self.make_design_matrix(data)
         treatments = data.treatments
         pi = self.model.predict_proba(covariates)[:, self.model.classes_ == 1].reshape(
             treatments.shape[0],

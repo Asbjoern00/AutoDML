@@ -7,13 +7,25 @@ class OutcomeLASSO:
         self.model = LassoCV(fit_intercept=True, n_jobs=5)
         self.functional = functional
 
+    def make_design_matrix(self,data):
+        #covariates = np.concatenate(
+        #    [np.ones(data.treatments.shape[0]).reshape(-1, 1), data.covariates], axis=1
+        #)
+        #design = np.concatenate(
+        #    [data.treatments.reshape(-1, 1) * covariates, (1 - data.treatments.reshape(-1, 1)) * covariates], axis=1
+        #)
+
+        design = np.concatenate([data.treatments.reshape(-1, 1), data.covariates], axis=1)
+
+        return design
+
     def fit(self, data):
-        X = np.concatenate([data.treatments.reshape(-1, 1), data.covariates], axis=1)
+        X = self.make_design_matrix(data)
         y = data.outcomes
         self.model.fit(X, y)
 
     def predict(self, data):
-        X = np.concatenate([data.treatments.reshape(-1, 1), data.covariates], axis=1)
+        X = self.make_design_matrix(data)
         return self.model.predict(X)
 
     def get_residuals(self, data):
