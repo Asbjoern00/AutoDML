@@ -2,9 +2,9 @@ from torch.optim import AdamW
 
 
 class Optimizer:
-    def __init__(self, network, epochs=1000, procedure=AdamW, early_stopping=None, lr=0.0001, weight_decay=0.01):
+    def __init__(self, network, epochs=1000, procedure=AdamW, early_stopping=None, lr=0.001, weight_decay=0.001):
         if early_stopping is None:
-            early_stopping = {"rounds": 50, "tolerance": 0.001, "proportion": 0.9}
+            early_stopping = {"rounds": 20, "tolerance": 0.001, "proportion": 0.8}
 
         optimizer_params = [
             {

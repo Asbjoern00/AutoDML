@@ -10,7 +10,7 @@ class ATERieszNetwork(nn.Module):
         self,
         functional,
         features_in: int = 26,
-        hidden_shared: int = 200,
+        hidden_shared: int = 100,
         n_shared_layers: int = 3,
         n_regression_weights: int = 100,
         n_regression_layers: int = 2,
