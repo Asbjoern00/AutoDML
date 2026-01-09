@@ -8,8 +8,8 @@ no_cross_fit_results = no_cross_fit_results %>% mutate(riesz_coverage = riesz_lo
 cross_fit_results = cross_fit_results %>% mutate(index = 1:1000, propensity_coverage = propensity_lower <= truth & truth <= propensity_upper)
 cross_fit_results = cross_fit_results %>% mutate(riesz_coverage = riesz_lower <= truth & truth <= riesz_upper)
 
-ymax = 2
-ymin = 0
+ymax = 1.4
+ymin = 0.6
 
 
 a = ggplot(no_cross_fit_results[1:100,])+

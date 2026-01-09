@@ -31,6 +31,8 @@ class RieszLasso:
             ],
             axis=1,
         )
+        #covariates = np.concatenate([np.ones(data.treatments.shape[0]).reshape(-1, 1),data.covariates[:, covariate_indices]], axis=1)
+        #design = np.concatenate([data.treatments.reshape(-1,1)*covariates,(1-data.treatments.reshape(-1,1))*covariates],axis=1)
 
         return design
 
@@ -38,7 +40,7 @@ class RieszLasso:
 
         xb = self.make_design_matrix(data)
         n, p = xb.shape[0], xb.shape[1]
-        intercept_indices = np.array([p-1])
+        intercept_indices = np.array([0])
         mb = self.functional(data, self.make_design_matrix)
         hatM = np.mean(mb, axis=0)
         hatG = 1 / n * (xb.T @ xb)
@@ -92,7 +94,7 @@ class RieszLasso:
                     best_loss = cur_loss
                     best_c1 = c1
 
-                print(c1, cur_loss)
+                #print(c1, cur_loss)
 
             self.fit(data, best_c1)
 

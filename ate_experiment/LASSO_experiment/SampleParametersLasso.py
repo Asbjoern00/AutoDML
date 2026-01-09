@@ -1,20 +1,54 @@
 import numpy as np
+from ate_experiment.dataset_highdim import DatasetHighDim
 
+def sample_parameters_lasso(
+    total_covariates=1200,
+    n_active_regression=15,
+    n_active_propensity=15,
+    n_active_intersection=5,
+):
+    common_covariates = np.random.choice(
+        np.arange(total_covariates),
+        size=n_active_intersection,
+    )
 
-def sample_parameters_lasso(total_covariates=2000, n_active_regression=20, n_active_propensity=20):
+    remaining_covariates = np.setdiff1d(
+        np.arange(total_covariates),
+        common_covariates,
+        assume_unique=True,
+    )
 
-    regression_coefficients = np.concatenate([np.array([1.0]), np.zeros(total_covariates)])
-    regression_indices = np.random.choice(np.arange(1, total_covariates + 1), size=n_active_regression, replace=False)
-    regression_coefficients[regression_indices] = np.random.uniform(-3, 3, n_active_regression)
+    regression_only = np.random.choice(
+        remaining_covariates,
+        size=n_active_regression - n_active_intersection,
+        replace=False,
+    )
+
+    propensity_only = np.random.choice(
+        np.setdiff1d(remaining_covariates, regression_only, assume_unique=True),
+        size=n_active_propensity - n_active_intersection,
+        replace=False,
+    )
+
+    regression_covariates = np.concatenate([common_covariates, regression_only])
+    propensity_covariates = np.concatenate([common_covariates, propensity_only])
+
+    regression_coefficients = np.zeros(total_covariates + 1)
+    regression_coefficients[0] = 1.0  # intercept
+    regression_coefficients[regression_covariates + 1] = np.random.uniform(
+        -3, 3, size=n_active_regression
+    )
 
     propensity_coefficients = np.zeros(total_covariates)
-    propensity_indices = np.random.choice(np.arange(total_covariates), size=n_active_propensity, replace=False)
-    propensity_coefficients[propensity_indices] = np.random.uniform(-3, 3, n_active_propensity)
+    propensity_coefficients[propensity_covariates] = np.random.uniform(
+        -3, 3, size=n_active_propensity
+    )
 
     return regression_coefficients, propensity_coefficients
-
 
 if __name__ == "__main__":
     regression_coefficients, propensity_coefficients = sample_parameters_lasso()
     np.save("ate_experiment/LASSO_experiment/regression_coefficients.npy", regression_coefficients)
     np.save("ate_experiment/LASSO_experiment/propensity_coefficients.npy", propensity_coefficients)
+    dat = DatasetHighDim.simulate_dataset(10000)
+    print(dat.treatments.mean())
