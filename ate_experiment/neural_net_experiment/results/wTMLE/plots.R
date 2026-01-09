@@ -1,5 +1,5 @@
 library(tidyverse)
-res_files <- list.files("ate_experiment/neural_net_experiment/results/woTMLE/",pattern = "*.csv", full.names = TRUE)
+res_files <- list.files("ate_experiment/neural_net_experiment/results/wTMLE/",pattern = "*.csv", full.names = TRUE)
 results <- tibble()
 for(file in res_files){
   results <- results %>% bind_rows(read_csv(file))
@@ -10,6 +10,7 @@ agg_res <- results %>% group_by(rr_weight) %>%
 
 
 agg_res %>% ggplot() + geom_line(aes(x = rr_weight, y = variance, color = "variance")) + geom_line(aes(x= rr_weight, y = bias^2, color = "bias^2")) + scale_x_log10() + theme_bw()
+
 results %>%
   mutate(normalized = sqrt(1000)*(riesz_estimate-truth)/sqrt(riesz_variance)) %>%
   ggplot() +
