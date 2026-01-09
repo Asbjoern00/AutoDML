@@ -58,8 +58,10 @@ class Dataset:
         return cls(raw_data, datasets[0].outcome_column, datasets[0].treatment_column)
 
     @classmethod
-    def simulate_dataset(cls, number_of_samples, number_of_covariates):
+    def simulate_dataset(cls, number_of_samples, number_of_covariates,seed = None):
         assert number_of_covariates >= 8
+        if seed is not None:
+            np.random.seed(seed)
         covariates = np.random.uniform(low=0, high=1, size=(number_of_samples, number_of_covariates))
         propensities = cls.propensity_score(covariates)
         treatments = np.random.binomial(1, propensities, size=number_of_samples)
