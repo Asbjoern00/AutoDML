@@ -4,6 +4,7 @@ from dope_neural_nets.model import ModelWrapper
 from dope_neural_nets.dataset import Dataset
 
 np.random.seed(1)
+torch.manual_seed(1)
 
 truth = 2.121539888279284
 
