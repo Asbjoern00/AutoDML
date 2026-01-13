@@ -43,6 +43,47 @@ class ModelWrapper:
                 break
         self.model.load_state_dict(best_state)
 
+    def train_riesz_head(self, data: Dataset, train_shared_layers):
+        self.model.train()
+        for param in self.model.outcome_layers.parameters():
+            param.requires_grad = False
+        if train_shared_layers:
+            for param in self.model.shared_layers.parameters():
+                param.requires_grad = True
+        else:
+            for param in self.model.shared_layers.parameters():
+                param.requires_grad = True
+        train_data, val_data = data.test_train_split(0.8)
+        train_treated, train_control = train_data.get_counterfactual_datasets()
+        val_treated, val_control = val_data.get_counterfactual_datasets()
+        criterion = RieszLoss()
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3, weight_decay=1e-3)
+        best = 1e6
+        patience = 20
+        counter = 20
+        best_state = None
+        for epoch in range(1000):
+            optimizer.zero_grad()
+            actual_riesz = self.model.predict_riesz(train_data.net_input)
+            treated_riesz = self.model.predict_riesz(train_treated.net_input)
+            control_riesz = self.model.predict_riesz(train_control.net_input)
+            loss = criterion(actual_riesz, treated_riesz, control_riesz)
+            loss.backward()
+            optimizer.step()
+
+            with torch.no_grad():
+                actual_riesz = self.model.predict_riesz(val_data.net_input)
+                treated_riesz = self.model.predict_riesz(val_treated.net_input)
+                control_riesz = self.model.predict_riesz(val_control.net_input)
+                test_loss = criterion(actual_riesz, treated_riesz, control_riesz)
+            if test_loss < best:
+                best = test_loss
+                counter = 0
+                best_state = copy.deepcopy(self.model.state_dict())
+            if counter >= patience:
+                break
+        self.model.load_state_dict(best_state)
+
 
 class Model(nn.Module):
     def __init__(self, hidden_size=64):
@@ -71,3 +112,8 @@ class Model(nn.Module):
     def predict_riesz(self, x):
         x = self.shared_layers(x)
         return self.riesz_layers(x)
+
+
+class RieszLoss(nn.Module):
+    def forward(self, actual_riesz, treated_riesz, control_riesz):
+        return torch.mean(actual_riesz**2) - 2 * (treated_riesz - control_riesz)
