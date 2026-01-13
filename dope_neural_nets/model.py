@@ -57,6 +57,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print('Outcome', epoch, best)
                 break
         self.model.load_state_dict(best_state)
 
@@ -98,7 +99,7 @@ class ModelWrapper:
                 actual_riesz = self.model.predict_riesz(val_data.net_input)
                 treated_riesz = self.model.predict_riesz(val_treated.net_input)
                 control_riesz = self.model.predict_riesz(val_control.net_input)
-                test_loss = criterion(actual_riesz, treated_riesz, control_riesz)
+                test_loss = criterion(actual_riesz, treated_riesz, control_riesz).item()
             if test_loss < best:
                 best = test_loss
                 counter = 0
@@ -106,6 +107,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print('Riesz', epoch, best)
                 break
         self.model.load_state_dict(best_state)
 
