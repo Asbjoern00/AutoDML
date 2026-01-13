@@ -1,5 +1,6 @@
 import torch
 from RieszNet.Loss import RieszLoss
+import copy
 
 
 class DOPERieszNetModule:
@@ -52,11 +53,14 @@ class DOPERieszNetModule:
             if self.regression_optimizer.early_stopping["tolerance"] + val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
+                best_state = copy.deepcopy(self.network.state_dict())
             else:
                 patience_counter += 1
                 if patience_counter >= self.regression_optimizer.early_stopping["rounds"]:
                     print(f"early stopping (Regression) at epoch {epoch}, MSE Loss {best_val_loss:.4f}")
                     break
+
+        self.network.load_state_dict(best_state)
 
     def fit_rr(self,train_data, val_data):
         best_val_loss = float("inf")
@@ -78,11 +82,14 @@ class DOPERieszNetModule:
             if self.rr_optimizer.early_stopping["tolerance"] + val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
+                best_state = copy.deepcopy(self.network.state_dict())
             else:
                 patience_counter += 1
                 if patience_counter >= self.rr_optimizer.early_stopping["rounds"]:
                     print(f"early stopping (Riesz) at epoch {epoch}")
                     break
+
+        self.network.load_state_dict(best_state)
 
     def get_plugin(self, data):
         return self.network.get_plugin_estimate(data)
