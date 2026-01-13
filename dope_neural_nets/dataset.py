@@ -118,7 +118,7 @@ class Dataset:
 
     @property
     def net_input(self):
-        return torch.from_numpy(self.raw_data[:, [self.treatment_column] + self.covariate_columns])
+        return torch.from_numpy(self.raw_data[:, [self.treatment_column] + self.covariate_columns].astype(np.float32))
 
     @property
     def xgb_dataset(self):

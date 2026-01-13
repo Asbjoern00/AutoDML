@@ -9,6 +9,7 @@ class ModelWrapper:
         self.model = Model()
 
     def get_estimate_components(self, data: Dataset):
+        self.model.eval()
         treated, control = data.get_counterfactual_datasets()
         outcome = self.model.predict_outcome(data.net_input)
         treated_outcome = self.model.predict_outcome(treated.net_input)
@@ -18,6 +19,8 @@ class ModelWrapper:
 
     def train_outcome_head(self, data: Dataset, train_shared_layers):
         self.model.train()
+        for param in self.model.outcome_layers.parameters():
+            param.requires_grad = True
         for param in self.model.riesz_layers.parameters():
             param.requires_grad = False
         if train_shared_layers:
@@ -25,10 +28,14 @@ class ModelWrapper:
                 param.requires_grad = True
         else:
             for param in self.model.shared_layers.parameters():
-                param.requires_grad = True
+                param.requires_grad = False
         train_data, val_data = data.test_train_split(0.8)
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3, weight_decay=1e-3)
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, self.model.parameters()),
+            lr=1e-3,
+            weight_decay=1e-3,
+        )
         best = 1e6
         patience = 20
         counter = 20
@@ -36,17 +43,19 @@ class ModelWrapper:
         for epoch in range(1000):
             optimizer.zero_grad()
             predictions = self.model.predict_outcome(train_data.net_input)
-            loss = criterion(predictions, train_data.outcome_tensor)
+            loss = criterion(predictions, train_data.outcomes_tensor)
             loss.backward()
             optimizer.step()
 
             with torch.no_grad():
                 predictions = self.model.predict_outcome(val_data.net_input)
-                test_loss = criterion(predictions, val_data.outcome_tensor).item()
+                test_loss = criterion(predictions, val_data.outcomes_tensor).item()
             if test_loss < best:
                 best = test_loss
                 counter = 0
                 best_state = copy.deepcopy(self.model.state_dict())
+            else:
+                counter += 1
             if counter >= patience:
                 break
         self.model.load_state_dict(best_state)
@@ -55,17 +64,23 @@ class ModelWrapper:
         self.model.train()
         for param in self.model.outcome_layers.parameters():
             param.requires_grad = False
+        for param in self.model.riesz_layers.parameters():
+            param.requires_grad = True
         if train_shared_layers:
             for param in self.model.shared_layers.parameters():
                 param.requires_grad = True
         else:
             for param in self.model.shared_layers.parameters():
-                param.requires_grad = True
+                param.requires_grad = False
         train_data, val_data = data.test_train_split(0.8)
         train_treated, train_control = train_data.get_counterfactual_datasets()
         val_treated, val_control = val_data.get_counterfactual_datasets()
         criterion = RieszLoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3, weight_decay=1e-3)
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, self.model.parameters()),
+            lr=1e-3,
+            weight_decay=1e-3,
+        )
         best = 1e6
         patience = 20
         counter = 20
@@ -88,6 +103,8 @@ class ModelWrapper:
                 best = test_loss
                 counter = 0
                 best_state = copy.deepcopy(self.model.state_dict())
+            else:
+                counter += 1
             if counter >= patience:
                 break
         self.model.load_state_dict(best_state)
@@ -124,4 +141,4 @@ class Model(nn.Module):
 
 class RieszLoss(nn.Module):
     def forward(self, actual_riesz, treated_riesz, control_riesz):
-        return torch.mean(actual_riesz**2) - 2 * (treated_riesz - control_riesz)
+        return torch.mean(actual_riesz**2 - 2 * (treated_riesz - control_riesz))
