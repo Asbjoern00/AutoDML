@@ -1,10 +1,10 @@
-from torch.optim import AdamW
+from torch.optim import AdamW,Adam
 
 
 class Optimizer:
     def __init__(self, network, epochs=1000, procedure=AdamW, early_stopping=None, lr=0.001, weight_decay=0.001):
         if early_stopping is None:
-            early_stopping = {"rounds": 20, "tolerance": 0.001, "proportion": 0.8}
+            early_stopping = {"rounds": 20, "tolerance": 0.0, "proportion": 0.8}
 
         optimizer_params = [
             {
@@ -18,11 +18,11 @@ class Optimizer:
         self.early_stopping = early_stopping
         self.epochs = epochs
 
-#TODO : this can be formulated in the above?
+# TODO : this can be formulated in the above?
 class OptimizerParams:
-    def __init__(self, networks, epochs = 1000, procedure = AdamW, early_stopping = None, lr=0.01, weight_decay=0.001):
+    def __init__(self, networks, epochs = 1000, procedure = AdamW, early_stopping = None, lr=0.001, weight_decay=0.001):
         if early_stopping is None:
-            self.early_stopping = {"rounds": 20, "tolerance": 0.001, "proportion": 0.8}
+            self.early_stopping = {"rounds": 20, "tolerance": 0.0, "proportion": 0.8}
         self.epochs = epochs
         params = []
         for network in networks:
