@@ -25,6 +25,7 @@ class ATERieszNetwork(nn.Module):
             hidden_dim=hidden_shared,
             out_dim=hidden_shared,
             n_hidden=n_shared_layers - 1,
+            activate_all=True,
         )
 
         self.rr_head = nn.Linear(hidden_shared, 1)
@@ -92,7 +93,6 @@ class ATERieszNetwork(nn.Module):
         y_treated = self.treated_head(z)
         y_untreated = self.untreated_head(z)
 
-        # Treatment indicator assumed in column 0
         t = data.treatments_tensor
         outcome_prediction = t * y_treated + (1 - t) * y_untreated
         adjusted_outcome_prediction = outcome_prediction + self.epsilon * rr_output
