@@ -1,1 +1,0 @@
-from dope_neural_nets.rr_weight import main_riesz_net_big, main_riesz_net_small, main_riesz_net_medium
