@@ -31,7 +31,7 @@ def run_experiment():
 
 
 results = []
-for i in range(50):
+for i in range(1000):
     result = run_experiment()
     results.append(result)
     residuals = [np.abs(result['estimate'] - truth) for result in results]
