@@ -5,8 +5,8 @@ import copy
 
 
 class ModelWrapper:
-    def __init__(self):
-        self.model = Model()
+    def __init__(self, type="shared_base"):
+        self.model = Model(type=type)
 
     def get_estimate_components(self, data: Dataset):
         self.model.eval()
@@ -18,17 +18,23 @@ class ModelWrapper:
         riesz = torch.clamp(riesz, -100, 100)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
-    def train_as_riesz_net(self, data: Dataset, rr_w=1):
+    def train_as_riesz_net(self, data: Dataset, rr_w=1, tmle_w=0, mse_w=1):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = True
-
+        if tmle_w == 0:
+            self.model.epsilon.requires_grad = False
+        riesz_criterion = RieszLoss()
+        outcome_criterion = nn.MSELoss()
+        tmle_criterion = nn.MSELoss()
         train_data, val_data = data.test_train_split(0.8)
         train_treated, train_control = train_data.get_counterfactual_datasets()
         val_treated, val_control = val_data.get_counterfactual_datasets()
-        riesz_criterion = RieszLoss()
-        outcome_criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3, weight_decay=1e-3)
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, self.model.parameters()),
+            lr=1e-3,
+            weight_decay=1e-3,
+        )
         best = 1e6
         patience = 20
         counter = 0
@@ -39,9 +45,10 @@ class ModelWrapper:
             treated_riesz = self.model.predict_riesz(train_treated.net_input)
             control_riesz = self.model.predict_riesz(train_control.net_input)
             riesz_loss = riesz_criterion(actual_riesz, treated_riesz, control_riesz)
-            predictions = self.model.predict_outcome(train_data.net_input)
-            outcome_loss = outcome_criterion(predictions, train_data.outcomes_tensor)
-            loss = riesz_loss * rr_w + outcome_loss
+            base_predictions = self.model.predict_without_correction(train_data.net_input)
+            outcome_loss = outcome_criterion(base_predictions, train_data.outcomes_tensor)
+            tmle_w_loss = tmle_criterion(self.model.predict_outcome(train_data.net_input), train_data.outcomes_tensor)
+            loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w
             loss.backward()
             optimizer.step()
 
@@ -50,9 +57,10 @@ class ModelWrapper:
                 treated_riesz = self.model.predict_riesz(val_treated.net_input)
                 control_riesz = self.model.predict_riesz(val_control.net_input)
                 riesz_loss = riesz_criterion(actual_riesz, treated_riesz, control_riesz)
-                predictions = self.model.predict_outcome(val_data.net_input)
-                outcome_loss = outcome_criterion(predictions, val_data.outcomes_tensor)
-                test_loss = riesz_loss * rr_w + outcome_loss
+                base_predictions = self.model.predict_without_correction(val_data.net_input)
+                outcome_loss = outcome_criterion(base_predictions, val_data.outcomes_tensor)
+                tmle_w_loss = tmle_criterion(self.model.predict_outcome(val_data.net_input), val_data.outcomes_tensor)
+                test_loss = (riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w).item()
             if test_loss < best:
                 best = test_loss
                 counter = 0
@@ -87,13 +95,13 @@ class ModelWrapper:
         best_state = None
         for epoch in range(1000):
             optimizer.zero_grad()
-            predictions = self.model.predict_outcome(train_data.net_input)
+            predictions = self.model.predict_without_correction(train_data.net_input)
             loss = criterion(predictions, train_data.outcomes_tensor)
             loss.backward()
             optimizer.step()
 
             with torch.no_grad():
-                predictions = self.model.predict_outcome(val_data.net_input)
+                predictions = self.model.predict_without_correction(val_data.net_input)
                 test_loss = criterion(predictions, val_data.outcomes_tensor).item()
             if test_loss < best:
                 best = test_loss
@@ -165,7 +173,7 @@ class Model(nn.Module):
             )
             self.outcome_base = shared_layers
             self.riesz_base = shared_layers
-        elif type == "separate nets":
+        elif type == "separate_nets":
             self.outcome_base = nn.Sequential(
                 nn.Linear(11, hidden_size),
                 nn.ReLU(),
@@ -188,10 +196,13 @@ class Model(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_size, 1),
         )
+        self.epsilon = torch.nn.Parameter(torch.tensor(0.0))
 
     def predict_outcome(self, x):
-        x = self.outcome_base(x)
-        return self.outcome_layers(x)
+        return self.outcome_layers(self.outcome_base(x)) + self.epsilon * self.predict_riesz(x)
+
+    def predict_without_correction(self, x):
+        return self.outcome_layers(self.outcome_base(x))
 
     def predict_riesz(self, x):
         x = self.riesz_base(x)
