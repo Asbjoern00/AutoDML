@@ -2,7 +2,7 @@ import numpy as np
 from ate_experiment.dataset import Dataset
 from RieszNet.DOPERieszNetModule import DOPERieszNetModule
 from RieszNet.Optimizer import OptimizerParams
-from RieszNet.DOPERieszNetATE import DOPEATERieszNetwork
+from RieszNet.DOPERieszNetATE import DOPEATERieszNetwork, DOPEATERieszNetworkSimple
 from average_treatment_effect.Functional.ATEFunctional import ate_functional
 
 
@@ -36,15 +36,13 @@ for i in range(m):
         eval_data, train_data = data.get_fit_and_train_folds(folds, j)
         n_eval_data = eval_data.treatments.shape[0]
 
-        network = DOPEATERieszNetwork(ate_functional, features_in=number_of_covariates + 1)
-        optim_regression = OptimizerParams(
-            [network.shared_treated, network.shared_untreated, network.regression_treated, network.regression_untreated]
-        )
-        optim_rr = OptimizerParams([network.rr_treated, network.rr_untreated])
+        network = DOPEATERieszNetworkSimple(ate_functional, features_in=number_of_covariates + 1)
+
+        optim_regression = OptimizerParams([network.regression_head])
+        optim_rr = OptimizerParams([network.shared,network.rr_head])
 
         riesz_net = DOPERieszNetModule(network=network, regression_optimizer=optim_regression, rr_optimizer=optim_rr)
-
-        riesz_net.fit(data)
+        riesz_net.fit(data,informed="regression")
 
         functional_riesz[n_evaluated : n_evaluated + n_eval_data] = riesz_net.get_functional(eval_data).flatten()
         correction_riesz[n_evaluated : n_evaluated + n_eval_data] = riesz_net.get_correction(eval_data).flatten()
@@ -64,16 +62,16 @@ for i in range(m):
     )
     print(i)
 
-#headers = [
+# headers = [
 #    "truth",
 #    "plugin_estimate_riesz",
 #    "riesz_estimate",
 #    "riesz_variance",
 #    "riesz_lower",
 #    "riesz_upper"
-#]
+# ]
 
-#results = np.array(
+# results = np.array(
 #    [
 #        [truth for _ in range(m)],
 #        est_plugin_riesz,
@@ -82,12 +80,12 @@ for i in range(m):
 #        lower_ci_riesz,
 #        upper_ci_riesz
 #    ]
-#).T
+# ).T
 
-#np.savetxt(
+# np.savetxt(
 #    f"ate_experiment/neural_net_experiment/results/Dope/tst.csv",
- #   results,
-  #  delimiter=",",
-  #  header=",".join(headers),
- #   comments="",
- #)
+#   results,
+#  delimiter=",",
+#  header=",".join(headers),
+#   comments="",
+# )
