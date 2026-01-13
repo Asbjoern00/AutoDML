@@ -38,7 +38,7 @@ class ModelWrapper:
         )
         best = 1e6
         patience = 20
-        counter = 20
+        counter = 0
         best_state = None
         for epoch in range(1000):
             optimizer.zero_grad()
@@ -83,7 +83,7 @@ class ModelWrapper:
         )
         best = 1e6
         patience = 20
-        counter = 20
+        counter = 0
         best_state = None
         for epoch in range(1000):
             optimizer.zero_grad()
