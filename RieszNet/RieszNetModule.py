@@ -1,5 +1,5 @@
 import torch
-
+import copy
 
 class RieszNetModule:
     def __init__(self, network, optimizer, loss):
@@ -38,11 +38,14 @@ class RieszNetModule:
             if self.optimizer.early_stopping["tolerance"] + val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
+                best_state = copy.deepcopy(self.network.state_dict())
             else:
                 patience_counter += 1
                 if patience_counter >= self.optimizer.early_stopping["rounds"]:
                     print(f"early stopping at epoch {epoch}")
                     break
+        self.network.load_state_dict(best_state)
+        print(((adjusted_outcome_prediction_val-val_data.outcomes_tensor)**2).mean())
 
     def get_plugin(self, data):
         return self.network.get_plugin_estimate(data)
