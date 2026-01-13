@@ -57,7 +57,6 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
-                print('Outcome', epoch, best)
                 break
         self.model.load_state_dict(best_state)
 
@@ -107,7 +106,6 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
-                print('Riesz', epoch, best)
                 break
         self.model.load_state_dict(best_state)
 

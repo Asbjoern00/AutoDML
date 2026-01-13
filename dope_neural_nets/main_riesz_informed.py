@@ -11,11 +11,11 @@ truth = 2.121539888279284
 
 def run_experiment():
     data = Dataset.simulate_dataset(1000, 10)
-    model_wrapper = ModelWrapper()
     folds = data.split_into_folds(5)
     estimate_components = []
     for j in range(5):
         fit_fold, train_folds = Dataset.get_fit_and_train_folds(folds, j)
+        model_wrapper = ModelWrapper()
         model_wrapper.train_riesz_head(train_folds, train_shared_layers=True)
         model_wrapper.train_outcome_head(train_folds, train_shared_layers=False)
         estimate_components.append(model_wrapper.get_estimate_components(fit_fold))
