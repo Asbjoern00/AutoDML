@@ -20,6 +20,9 @@ class ModelWrapper:
 
     def train_as_riesz_net(self, data: Dataset, rr_w=1):
         self.model.train()
+        for param in self.model.parameters():
+            param.requires_grad = True
+
         train_data, val_data = data.test_train_split(0.8)
         train_treated, train_control = train_data.get_counterfactual_datasets()
         val_treated, val_control = val_data.get_counterfactual_datasets()
@@ -63,23 +66,21 @@ class ModelWrapper:
 
     def train_outcome_head(self, data: Dataset, train_shared_layers):
         self.model.train()
+        for param in self.model.parameters():
+            param.requires_grad = False
         for param in self.model.outcome_layers.parameters():
             param.requires_grad = True
-        for param in self.model.riesz_layers.parameters():
-            param.requires_grad = False
         if train_shared_layers:
-            for param in self.model.shared_layers.parameters():
+            for param in self.model.outcome_base.parameters():
                 param.requires_grad = True
-        else:
-            for param in self.model.shared_layers.parameters():
-                param.requires_grad = False
-        train_data, val_data = data.test_train_split(0.8)
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
             lr=1e-3,
             weight_decay=1e-3,
         )
+
+        train_data, val_data = data.test_train_split(0.8)
         best = 1e6
         patience = 20
         counter = 0
@@ -106,25 +107,23 @@ class ModelWrapper:
 
     def train_riesz_head(self, data: Dataset, train_shared_layers):
         self.model.train()
-        for param in self.model.outcome_layers.parameters():
+        for param in self.model.parameters():
             param.requires_grad = False
         for param in self.model.riesz_layers.parameters():
             param.requires_grad = True
         if train_shared_layers:
-            for param in self.model.shared_layers.parameters():
+            for param in self.model.riesz_base.parameters():
                 param.requires_grad = True
-        else:
-            for param in self.model.shared_layers.parameters():
-                param.requires_grad = False
-        train_data, val_data = data.test_train_split(0.8)
-        train_treated, train_control = train_data.get_counterfactual_datasets()
-        val_treated, val_control = val_data.get_counterfactual_datasets()
         criterion = RieszLoss()
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
             lr=1e-3,
             weight_decay=1e-3,
         )
+
+        train_data, val_data = data.test_train_split(0.8)
+        train_treated, train_control = train_data.get_counterfactual_datasets()
+        val_treated, val_control = val_data.get_counterfactual_datasets()
         best = 1e6
         patience = 20
         counter = 0
@@ -155,14 +154,30 @@ class ModelWrapper:
 
 
 class Model(nn.Module):
-    def __init__(self, hidden_size=64):
+    def __init__(self, hidden_size=64, type="shared_base"):
         super(Model, self).__init__()
-        self.shared_layers = nn.Sequential(
-            nn.Linear(11, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-        )
+        if type == "shared_base":
+            shared_layers = nn.Sequential(
+                nn.Linear(11, hidden_size),
+                nn.ReLU(),
+                nn.Linear(hidden_size, hidden_size),
+                nn.ReLU(),
+            )
+            self.outcome_base = shared_layers
+            self.riesz_base = shared_layers
+        elif type == "separate nets":
+            self.outcome_base = nn.Sequential(
+                nn.Linear(11, hidden_size),
+                nn.ReLU(),
+                nn.Linear(hidden_size, hidden_size),
+                nn.ReLU(),
+            )
+            self.riesz_base = nn.Sequential(
+                nn.Linear(11, hidden_size),
+                nn.ReLU(),
+                nn.Linear(hidden_size, hidden_size),
+                nn.ReLU(),
+            )
         self.outcome_layers = nn.Sequential(
             nn.Linear(hidden_size, hidden_size),
             nn.ReLU(),
@@ -175,11 +190,11 @@ class Model(nn.Module):
         )
 
     def predict_outcome(self, x):
-        x = self.shared_layers(x)
+        x = self.outcome_base(x)
         return self.outcome_layers(x)
 
     def predict_riesz(self, x):
-        x = self.shared_layers(x)
+        x = self.riesz_base(x)
         return self.riesz_layers(x)
 
 
