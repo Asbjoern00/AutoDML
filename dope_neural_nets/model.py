@@ -8,6 +8,14 @@ class ModelWrapper:
     def __init__(self):
         self.model = Model()
 
+    def get_estimate_components(self, data: Dataset):
+        treated, control = data.get_counterfactual_datasets()
+        outcome = self.model.predict_outcome(data.net_input)
+        treated_outcome = self.model.predict_outcome(treated.net_input)
+        control_outcome = self.model.predict_outcome(control.net_input)
+        riesz = self.model.predict_riesz(data.net_input)
+        return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
+
     def train_outcome_head(self, data: Dataset, train_shared_layers):
         self.model.train()
         for param in self.model.riesz_layers.parameters():
