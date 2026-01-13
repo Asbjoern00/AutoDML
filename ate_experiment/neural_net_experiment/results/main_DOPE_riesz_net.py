@@ -64,30 +64,30 @@ for i in range(m):
     )
     print(i)
 
-headers = [
-    "truth",
-    "plugin_estimate_riesz",
-    "riesz_estimate",
-    "riesz_variance",
-    "riesz_lower",
-    "riesz_upper"
-]
+#headers = [
+#    "truth",
+#    "plugin_estimate_riesz",
+#    "riesz_estimate",
+#    "riesz_variance",
+#    "riesz_lower",
+#    "riesz_upper"
+#]
 
-results = np.array(
-    [
-        [truth for _ in range(m)],
-        est_plugin_riesz,
-        est_riesz,
-        var_riesz,
-        lower_ci_riesz,
-        upper_ci_riesz
-    ]
-).T
+#results = np.array(
+#    [
+#        [truth for _ in range(m)],
+#        est_plugin_riesz,
+#        est_riesz,
+#        var_riesz,
+#        lower_ci_riesz,
+#        upper_ci_riesz
+#    ]
+#).T
 
-np.savetxt(
-    f"ate_experiment/neural_net_experiment/results/Dope/tst.csv",
-    results,
-    delimiter=",",
-    header=",".join(headers),
-    comments="",
- )
+#np.savetxt(
+#    f"ate_experiment/neural_net_experiment/results/Dope/tst.csv",
+ #   results,
+  #  delimiter=",",
+  #  header=",".join(headers),
+ #   comments="",
+ #)

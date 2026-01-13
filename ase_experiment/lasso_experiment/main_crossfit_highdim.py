@@ -3,7 +3,6 @@ from ase_experiment.dataset_highdim import DatasetHighDim
 from LASSO.LassoClass import Lasso
 from LASSO.RieszLasso import RieszLasso,ASETreatmentLasso
 from LASSO.OutcomeLASSO import OutcomeLASSO
-from sklearn.linear_model import LassoCV
 from ase_experiment.Functional.ASEFunctional import ase_functional
 import os.path
 
@@ -59,31 +58,29 @@ for i in range(m):
     data = DatasetHighDim.simulate_dataset(n)
     folds = data.split_into_folds(n_folds)
 
-    if i >= n_already_run or i == 8:
+    if i >= n_already_run:
         correction_riesz = np.zeros(data.treatments.shape[0])
         correction_indirect = np.zeros(data.treatments.shape[0])
         functional = np.zeros(data.treatments.shape[0])
         n_evaluated = 0
 
-        riesz_lasso = RieszLasso(ase_functional)
-        indirect_riesz = ASETreatmentLasso()
-        outcome_lasso = OutcomeLASSO(ase_functional)
-        lassoR = Lasso(riesz_lasso, outcome_lasso)
-        lassoP = Lasso(indirect_riesz,outcome_lasso)
-
         for j in range(n_folds):
+            riesz_lasso = RieszLasso(ase_functional)
+            indirect_riesz = ASETreatmentLasso()
+            outcome_lasso = OutcomeLASSO(ase_functional)
+            lassoR = Lasso(riesz_lasso, outcome_lasso)
+            lassoP = Lasso(indirect_riesz, outcome_lasso)
+
             eval_data, train_data = data.get_fit_and_train_folds(folds, j)
             n_eval_data = eval_data.treatments.shape[0]
-            lassoR.fit(train_data)
-            lassoP.fit(train_data)
+            lassoR.fit(train_data,cv_riesz_c1s=np.array([1.25, 1, 0.75, 0.5, 0.25]))
+            lassoP.fit(train_data, fit_outcome_model=False)
             functional[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_functional(eval_data)
             correction_riesz[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_correction(eval_data)
             correction_indirect[n_evaluated : n_evaluated + n_eval_data] = lassoP.get_correction(eval_data)
             n_evaluated = n_evaluated + n_eval_data
 
         est_plugin[i] = np.mean(functional)
-
-
 
         est_riesz[i] = np.mean(est_plugin[i] + correction_riesz)
         var_riesz[i] = np.mean((functional - est_riesz[i] + correction_riesz) ** 2)
@@ -108,38 +105,38 @@ for i in range(m):
     print(i)
 
 
-headers = [
-    "truth",
-    "plugin_estimate",
-    "indirect_estimate",
-    "indirect_variance",
-    "indirect_lower",
-    "indirect_upper",
-    "riesz_estimate",
-    "riesz_variance",
-    "riesz_lower",
-    "riesz_upper",
-]
-
-results = np.array(
-    [
-        [truth for _ in range(m)],
-        est_plugin,
-        est_indirect,
-        var_indirect,
-        lower_ci_indirect,
-        upper_ci_indirect,
-        est_riesz,
-        var_riesz,
-        lower_ci_riesz,
-        upper_ci_riesz,
+    headers = [
+        "truth",
+        "plugin_estimate",
+        "indirect_estimate",
+        "indirect_variance",
+        "indirect_lower",
+        "indirect_upper",
+        "riesz_estimate",
+        "riesz_variance",
+        "riesz_lower",
+        "riesz_upper",
     ]
-).T
 
-np.savetxt(
-    "ase_experiment/lasso_experiment/Results/cross_fit_results.csv",
-    results,
-    delimiter=",",
-    header=",".join(headers),
-    comments="",
-)
+    results = np.array(
+        [
+            [truth for _ in range(m)],
+            est_plugin,
+            est_indirect,
+            var_indirect,
+            lower_ci_indirect,
+            upper_ci_indirect,
+            est_riesz,
+            var_riesz,
+            lower_ci_riesz,
+            upper_ci_riesz,
+        ]
+    ).T
+
+    np.savetxt(
+        "ase_experiment/lasso_experiment/Results/cross_fit_results.csv",
+        results,
+        delimiter=",",
+        header=",".join(headers),
+        comments="",
+    )

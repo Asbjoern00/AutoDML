@@ -10,16 +10,27 @@ class DOPERieszNetModule:
         self.regression_loss = torch.nn.MSELoss()
         self.rr_loss = RieszLoss()
 
-    def fit(self, data):
+    def fit(self, data, informed = "regression"):
 
         train_data, val_data = data.test_train_split(train_proportion=self.regression_optimizer.early_stopping["proportion"])
-        self.fit_regression(train_data, val_data)
+        if informed == "regression":
 
-        for group in self.regression_optimizer.optim.param_groups:
-            for p in group["params"]:
-                p.requires_grad = False
+            self.fit_regression(train_data, val_data)
 
-        self.fit_rr(train_data, val_data)
+            for group in self.regression_optimizer.optim.param_groups:
+                for p in group["params"]:
+                    p.requires_grad = False
+
+            self.fit_rr(train_data, val_data)
+
+        if informed == "riesz":
+            self.fit_rr(train_data, val_data)
+
+            for group in self.rr_optimizer.optim.param_groups:
+                for p in group["params"]:
+                    p.requires_grad = False
+
+            self.fit_regression(train_data, val_data)
 
     def fit_regression(self, train_data, val_data):
         best_val_loss = float("inf")

@@ -1,6 +1,5 @@
 import numpy as np
 from ate_experiment.dataset import Dataset
-
 from RieszNet.RieszNetModule import RieszNetModule
 from RieszNet.Optimizer import Optimizer
 from RieszNet.RieszNetATE import ATERieszNetwork
@@ -13,7 +12,7 @@ n = 1000
 m = 1000
 n_folds = 5
 number_of_covariates = 10
-rr_weights = np.array([0.001,0.01, 0.05 ,0.1, 0.5,1,10,100,1000])
+rr_weights = np.array([0.001,0.01, 0.05, 0.075,0.1,0.125])
 tmle_weight = 0.0
 outcome_mse_weight = 1.0
 
@@ -64,7 +63,7 @@ for rr_weight in rr_weights:
         upper_ci_riesz[i] = est_riesz[i] + 1.96 * np.sqrt(var_riesz[i] / n)
         covered_riesz[i] = (lower_ci_riesz[i] < truth) * (truth < upper_ci_riesz[i])
 
-        print(f"Riesz weight = {rr_weight} MSE : {np.mean((est_riesz[:i+1]-truth)**2)}, coverage = {np.mean(covered_riesz[:i+1])}")
+        print(f"Riesz weight = {rr_weight} RMSE : {np.sqrt(np.mean((est_riesz[:i+1]-truth)**2))}, coverage = {np.mean(covered_riesz[:i+1])}")
         print(i)
 
     headers = [
