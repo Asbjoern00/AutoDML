@@ -4,12 +4,33 @@ import torch
 
 
 class Dataset:
-    def __init__(self, raw_data: np.ndarray, outcome_column: int, treatment_column: int):
+    def __init__(
+        self, raw_data: np.ndarray, outcome_column: int, treatment_column: int, covariate_columns: list = None
+    ):
         self.raw_data = raw_data
         self.outcome_column = outcome_column
         self.treatment_column = treatment_column
-        covariate_columns = [i for i in range(raw_data.shape[1]) if i not in [outcome_column, treatment_column]]
+        if not covariate_columns:
+            covariate_columns = [i for i in range(raw_data.shape[1]) if i not in [outcome_column, treatment_column]]
         self.covariate_columns = covariate_columns
+
+    @classmethod
+    def from_csv(cls, path):
+        data = np.loadtxt(path)
+        return cls(
+            raw_data=data,
+            treatment_column=0,
+            outcome_column=1,
+            covariate_columns=[i + 5 for i in range(25)],
+        )
+
+    def get_truth(self):
+        return np.mean(self.raw_data[:, 4] - self.raw_data[:, 3])
+
+    @classmethod
+    def load_chernozhukov_replication(cls, index):
+        path = "ihdp_average_treatment_effect/data/chernozhukov_ihdp_data/ihdp_" + str(index) + ".csv"
+        return cls.from_csv(path)
 
     @classmethod
     def get_fit_and_train_folds(cls, folds, fit_index):
@@ -28,7 +49,7 @@ class Dataset:
         folds = [
             self.raw_data[np.concatenate([treated_fold_indices[i], control_fold_indices[i]])] for i in range(folds)
         ]
-        return [Dataset(fold, self.outcome_column, self.treatment_column) for fold in folds]
+        return [Dataset(fold, self.outcome_column, self.treatment_column, self.covariate_columns) for fold in folds]
 
     def test_train_split(self, train_proportion):
         number_of_samples = self.raw_data.shape[0]
@@ -48,14 +69,14 @@ class Dataset:
         test_data = self.raw_data[np.concatenate([treated_test_indices, control_test_indices]), :]
 
         return (
-            Dataset(train_data, self.outcome_column, self.treatment_column),
-            Dataset(test_data, self.outcome_column, self.treatment_column),
+            Dataset(train_data, self.outcome_column, self.treatment_column, self.covariate_columns),
+            Dataset(test_data, self.outcome_column, self.treatment_column, self.covariate_columns),
         )
 
     @classmethod
     def join_datasets(cls, datasets):
         raw_data = np.concatenate([dataset.raw_data for dataset in datasets], axis=0)
-        return cls(raw_data, datasets[0].outcome_column, datasets[0].treatment_column)
+        return cls(raw_data, datasets[0].outcome_column, datasets[0].treatment_column, datasets[0].covariate_columns)
 
     @classmethod
     def simulate_dataset(cls, number_of_samples, number_of_covariates):
@@ -86,7 +107,7 @@ class Dataset:
         X5 = covariates[:, 5]
         X6 = covariates[:, 6]
         X7 = covariates[:, 7]
-        logit = X4 + np.cos(X5*3.14) - np.cos(X6*3.14) + -X4*X7 - 1.5
+        logit = X4 + np.cos(X5 * 3.14) - np.cos(X6 * 3.14) + -X4 * X7 - 1.5
         return 1 / (1 + np.exp(-logit))
 
     @property
@@ -104,12 +125,12 @@ class Dataset:
     @property
     def outcomes_tensor(self):
         outcomes = self.outcomes.astype(np.float32)
-        return torch.from_numpy(outcomes).reshape(-1,1)
+        return torch.from_numpy(outcomes).reshape(-1, 1)
 
     @property
     def treatments_tensor(self):
         treatments = self.treatments.astype(np.float32)
-        return torch.from_numpy(treatments).reshape(-1,1)
+        return torch.from_numpy(treatments).reshape(-1, 1)
 
     @property
     def covariates_tensor(self):
@@ -141,6 +162,6 @@ class Dataset:
         control_raw_data = self.raw_data.copy()
         control_raw_data[:, self.treatment_column] = np.zeros_like(control_raw_data[:, self.treatment_column])
         return (
-            Dataset(treated_raw_data, self.outcome_column, self.treatment_column),
-            Dataset(control_raw_data, self.outcome_column, self.treatment_column),
+            Dataset(treated_raw_data, self.outcome_column, self.treatment_column, self.covariate_columns),
+            Dataset(control_raw_data, self.outcome_column, self.treatment_column, self.covariate_columns),
         )
