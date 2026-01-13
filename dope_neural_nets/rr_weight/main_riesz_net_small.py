@@ -38,3 +38,8 @@ for i in range(1000):
     mse_filtered = sum(residual**2 for residual in residuals if residual <= 1) / sum(1 for residual in residuals if residual <= 1)
     coverage = sum(result["lower"] <= truth <= result["upper"] for result in results) / len(results)
     print(i, "Estimate:", result["estimate"], "RMSE:", mse**0.5, 'Coverage:', coverage, 'Filtered RMSE:', mse_filtered ** 0.5)
+
+import pandas as pd
+
+estimates = pd.DataFrame(results)
+estimates.to_csv("dope_neural_nets/rr_weight/rr_01.csv", index=False)
