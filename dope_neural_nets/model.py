@@ -17,6 +17,48 @@ class ModelWrapper:
         riesz = self.model.predict_riesz(data.net_input)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
+    def train_as_riesz_net(self, data: Dataset, rr_w=1):
+        self.model.train()
+        train_data, val_data = data.test_train_split(0.8)
+        train_treated, train_control = train_data.get_counterfactual_datasets()
+        val_treated, val_control = val_data.get_counterfactual_datasets()
+        riesz_criterion = RieszLoss()
+        outcome_criterion = nn.MSELoss()
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3, weight_decay=1e-3)
+        best = 1e6
+        patience = 20
+        counter = 0
+        best_state = None
+        for epoch in range(1000):
+            optimizer.zero_grad()
+            actual_riesz = self.model.predict_riesz(train_data.net_input)
+            treated_riesz = self.model.predict_riesz(train_treated.net_input)
+            control_riesz = self.model.predict_riesz(train_control.net_input)
+            riesz_loss = riesz_criterion(actual_riesz, treated_riesz, control_riesz)
+            predictions = self.model.predict_outcome(train_data.net_input)
+            outcome_loss = outcome_criterion(predictions, train_data.outcomes_tensor)
+            loss = riesz_loss * rr_w + outcome_loss
+            loss.backward()
+            optimizer.step()
+
+            with torch.no_grad():
+                actual_riesz = self.model.predict_riesz(val_data.net_input)
+                treated_riesz = self.model.predict_riesz(val_treated.net_input)
+                control_riesz = self.model.predict_riesz(val_control.net_input)
+                riesz_loss = riesz_criterion(actual_riesz, treated_riesz, control_riesz)
+                predictions = self.model.predict_outcome(val_data.net_input)
+                outcome_loss = outcome_criterion(predictions, val_data.outcomes_tensor)
+                test_loss = riesz_loss * rr_w + outcome_loss
+            if test_loss < best:
+                best = test_loss
+                counter = 0
+                best_state = copy.deepcopy(self.model.state_dict())
+            else:
+                counter += 1
+            if counter >= patience:
+                break
+        self.model.load_state_dict(best_state)
+
     def train_outcome_head(self, data: Dataset, train_shared_layers):
         self.model.train()
         for param in self.model.outcome_layers.parameters():
