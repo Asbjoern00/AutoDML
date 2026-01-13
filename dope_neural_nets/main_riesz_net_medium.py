@@ -3,8 +3,8 @@ import numpy as np
 from dope_neural_nets.model import ModelWrapper
 from dope_neural_nets.dataset import Dataset
 
-np.random.seed(101)
-torch.manual_seed(101)
+np.random.seed(1)
+torch.manual_seed(1)
 
 truth = 2.121539888279284
 
@@ -16,7 +16,7 @@ def run_experiment():
     for j in range(5):
         fit_fold, train_folds = Dataset.get_fit_and_train_folds(folds, j)
         model_wrapper = ModelWrapper()
-        model_wrapper.train_as_riesz_net(train_folds, rr_w=10)
+        model_wrapper.train_as_riesz_net(train_folds, rr_w=1)
         estimate_components.append(model_wrapper.get_estimate_components(fit_fold))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()
