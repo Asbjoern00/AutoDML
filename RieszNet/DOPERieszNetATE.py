@@ -114,47 +114,37 @@ class DOPEATERieszNetwork(nn.Module):
         return rr_prediction, rr_functional, outcome_prediction
 
 class DOPEATERieszNetworkSimple(nn.Module):
+
     def __init__(
         self,
         functional,
         features_in: int = 26,
-        hidden_shared: int = 100,
-        final_shared: int = 100,
-        n_shared_layers: int = 3,
-        n_riesz_weights: int = 100,
-        n_riesz_layers: int = 2
+        hidden_shared: int = 64,
+        n_shared_layers: int = 2,
+        n_regression_weights: int = 64,
+        n_riesz_weights: int = 64,
+        n_regression_layers: int = 1,
+        n_riesz_layers: int = 1,
     ):
         super().__init__()
 
         self.functional = functional
 
+        # Shared trunk
         self.shared = make_sequential(
             in_dim=features_in,
             hidden_dim=hidden_shared,
-            out_dim=final_shared,
+            out_dim=hidden_shared,
             n_hidden=n_shared_layers - 1,
-            activate_all=True
+            activate_all=True,
         )
-
-        self.regression_treated = make_sequential(
-            in_dim=final_shared,
-            hidden_dim=n_riesz_weights,
-            out_dim=1,
-            n_hidden=n_riesz_layers
-        )
-        self.regression_untreated = make_sequential(
-            in_dim=final_shared,
-            hidden_dim=n_riesz_weights,
-            out_dim=1,
-            n_hidden=n_riesz_layers
-        )
-
 
         self.rr_head = make_sequential(
-            in_dim=final_shared,
-            hidden_dim=n_riesz_weights,
-            out_dim=1,
-            n_hidden=n_riesz_layers
+            in_dim=hidden_shared, hidden_dim=n_riesz_weights, out_dim=1, n_hidden=n_riesz_layers
+        )
+
+        self.regression_head = make_sequential(
+            in_dim=hidden_shared, hidden_dim=n_regression_weights, out_dim=1, n_hidden=n_regression_layers
         )
 
     def _forward_shared(self, data):
@@ -197,13 +187,10 @@ class DOPEATERieszNetworkSimple(nn.Module):
         rr_functional = self.functional(data, self.get_riesz_representer)
 
         # Shared representation
-        z= self._forward_shared(data)
+        z = self._forward_shared(data)
 
-        y_treated = self.regression_treated(z)
-        y_untreated = self.regression_untreated(z)
+        # Heads
+        rr_output = self.rr_head(z)
+        outcome_prediction = self.regression_head(z)
 
-        t = data.treatments_tensor
-        outcome_prediction = t * y_treated + (1 - t) * y_untreated
-        rr_prediction = self.rr_head(z)
-
-        return rr_prediction, rr_functional, outcome_prediction
+        return rr_output, rr_functional, outcome_prediction
