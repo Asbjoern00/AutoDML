@@ -30,11 +30,7 @@ class ModelWrapper:
         train_data, val_data = data.test_train_split(0.8)
         train_treated, train_control = train_data.get_counterfactual_datasets()
         val_treated, val_control = val_data.get_counterfactual_datasets()
-        optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, self.model.parameters()),
-            lr=1e-3,
-            weight_decay=1e-3,
-        )
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=1e-3)
         best = 1e6
         patience = 20
         counter = 0
@@ -48,7 +44,11 @@ class ModelWrapper:
             base_predictions = self.model.predict_without_correction(train_data.net_input)
             outcome_loss = outcome_criterion(base_predictions, train_data.outcomes_tensor)
             tmle_w_loss = tmle_criterion(self.model.predict_outcome(train_data.net_input), train_data.outcomes_tensor)
-            loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w
+            l2_penalty = 0.0
+            for name, param in self.model.named_parameters():
+                if name != "epsilon":
+                    l2_penalty += torch.sum(param**2)
+            loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w + l2_penalty * 1e-3
             loss.backward()
             optimizer.step()
 
