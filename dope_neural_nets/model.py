@@ -15,7 +15,6 @@ class ModelWrapper:
         treated_outcome = self.model.predict_outcome(treated.net_input)
         control_outcome = self.model.predict_outcome(control.net_input)
         riesz = self.model.predict_riesz(data.net_input)
-        riesz = torch.clamp(riesz, -100, 100)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
     def train_as_riesz_net(self, data: Dataset, rr_w=1, tmle_w=0, mse_w=1):
