@@ -9,6 +9,8 @@ torch.manual_seed(42)
 truth = 2.121539888279284
 
 
+## Double training
+
 def run_experiment(data):
     folds = data.split_into_folds(5)
     estimate_components = []
@@ -16,7 +18,9 @@ def run_experiment(data):
         fit_fold, train_folds = Dataset.get_fit_and_train_folds(folds, j)
         model_wrapper = ModelWrapper()
         model_wrapper.train_outcome_head(train_folds, train_shared_layers=True)
+        model_wrapper.train_outcome_head(train_folds, train_shared_layers=True, lr=1e-4)
         model_wrapper.train_riesz_head(train_folds, train_shared_layers=False)
+        model_wrapper.train_riesz_head(train_folds, train_shared_layers=False, lr=1e-4)
         estimate_components.append(model_wrapper.get_estimate_components(fit_fold))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()

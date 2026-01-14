@@ -73,7 +73,7 @@ class ModelWrapper:
         print(outcome_loss, riesz_loss,test_loss)
         self.model.load_state_dict(best_state)
 
-    def train_outcome_head(self, data: Dataset, train_shared_layers):
+    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -85,7 +85,7 @@ class ModelWrapper:
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
-            lr=1e-3,
+            lr=lr,
             weight_decay=1e-3,
         )
         train_data, val_data = data.test_train_split(0.8)
@@ -118,7 +118,7 @@ class ModelWrapper:
                 break
         self.model.load_state_dict(best_state)
 
-    def train_riesz_head(self, data: Dataset, train_shared_layers):
+    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -130,7 +130,7 @@ class ModelWrapper:
         criterion = RieszLoss()
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
-            lr=1e-3,
+            lr=lr,
             weight_decay=1e-3,
         )
 
@@ -184,9 +184,9 @@ class Model(nn.Module):
                 nn.Linear(hidden_size, hidden_size),
                 nn.ELU(),
                 nn.Dropout(0.2),
-                # nn.Linear(hidden_size, hidden_size),
-                # nn.ELU(),
-                # nn.Dropout(0.2),
+                nn.Linear(hidden_size, hidden_size),
+                nn.ELU(),
+                nn.Dropout(0.2),
             )
             self.outcome_base = shared_layers
             self.riesz_base = shared_layers
@@ -267,9 +267,9 @@ class Head(nn.Module):
             nn.Linear(hidden_size + 1, hidden_size),
             nn.ELU(),
             nn.Dropout(0.2),
-            # nn.Linear(hidden_size, hidden_size),
-            # nn.ELU(),
-            # nn.Dropout(0.2),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ELU(),
+            nn.Dropout(0.2),
             nn.Linear(hidden_size, 1),
         )
 
