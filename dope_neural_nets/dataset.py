@@ -33,6 +33,11 @@ class Dataset:
         return cls.from_csv(path)
 
     @classmethod
+    def load_redrawn_t_replication(cls, index):
+        path = "ihdp_average_treatment_effect/data/redrawn_t/ihdp_" + str(index) + ".csv"
+        return cls.from_csv(path)
+
+    @classmethod
     def get_fit_and_train_folds(cls, folds, fit_index):
         train_data = cls.join_datasets([folds[i] for i in range(len(folds)) if i != fit_index])
         return folds[fit_index], train_data

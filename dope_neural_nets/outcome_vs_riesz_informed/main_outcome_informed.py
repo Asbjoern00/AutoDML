@@ -33,10 +33,10 @@ def run_experiment(data):
 
 results = []
 truths = []
-for i in range(1000):
+for i in range(100):
     if i == 8:
         continue
-    data = Dataset.load_chernozhukov_replication(i + 1)
+    data = Dataset.load_redrawn_t_replication(i + 1)
     result = run_experiment(data)
     truths.append(data.get_truth())
     results.append(result)
