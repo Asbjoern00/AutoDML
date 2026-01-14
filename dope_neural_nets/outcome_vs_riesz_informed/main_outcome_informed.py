@@ -9,8 +9,7 @@ torch.manual_seed(42)
 truth = 2.121539888279284
 
 
-def run_experiment():
-    data = Dataset.simulate_dataset(1000, 10)
+def run_experiment(data):
     folds = data.split_into_folds(5)
     estimate_components = []
     for j in range(5):
@@ -31,16 +30,22 @@ def run_experiment():
 
 
 results = []
+truths = []
 for i in range(1000):
-    result = run_experiment()
+    if i == 8:
+        continue
+    data = Dataset.load_chernozhukov_replication(i + 1)
+    result = run_experiment(data)
+    truths.append(data.get_truth())
     results.append(result)
-    residuals = [np.abs(result['estimate'] - truth) for result in results]
+    residuals = [np.abs(result["estimate"] - truth) for result, truth in zip(results, truths)]
     mse = sum(residual**2 for residual in residuals) / len(residuals)
-    mse_filtered = sum(residual**2 for residual in residuals if residual <= 1) / sum(1 for residual in residuals if residual <= 1)
-    coverage = sum(result["lower"] <= truth <= result["upper"] for result in results) / len(results)
-    print(i, "Estimate:", result["estimate"], "RMSE:", mse**0.5, 'Coverage:', coverage, 'Filtered RMSE:', mse_filtered ** 0.5)
+    coverage = sum(result["lower"] <= truth <= result["upper"] for result, truth in zip(results, truths)) / len(results)
+    print(
+        i, data.get_truth(), "Estimate:", result["estimate"], "RMSE:", mse**0.5, "Coverage:", coverage
+    )
 
 import pandas as pd
 
-estimates = pd.DataFrame(results)
-estimates.to_csv("dope_neural_nets/outcome_vs_riesz_informed/outcome_informed.csv", index=False)
+# estimates = pd.DataFrame(results)
+# estimates.to_csv("dope_neural_nets/outcome_vs_riesz_informed/outcome_informed.csv", index=False)

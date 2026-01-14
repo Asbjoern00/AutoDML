@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from dope_neural_nets.dataset import Dataset
 import copy
+from torch.utils.data import DataLoader, TensorDataset
 
 
 class ModelWrapper:
@@ -67,6 +68,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print(epoch, outcome_loss)
                 break
         print(outcome_loss, riesz_loss,test_loss)
         self.model.load_state_dict(best_state)
@@ -86,18 +88,21 @@ class ModelWrapper:
             lr=1e-3,
             weight_decay=1e-3,
         )
-
         train_data, val_data = data.test_train_split(0.8)
+        loader = DataLoader(
+            TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=32, shuffle=True
+        )
         best = 1e6
         patience = 20
         counter = 0
         best_state = None
         for epoch in range(1000):
-            optimizer.zero_grad()
-            predictions = self.model.predict_without_correction(train_data.net_input)
-            loss = criterion(predictions, train_data.outcomes_tensor)
-            loss.backward()
-            optimizer.step()
+            for x, y in loader:
+                optimizer.zero_grad()
+                predictions = self.model.predict_without_correction(x)
+                loss = criterion(predictions, y)
+                loss.backward()
+                optimizer.step()
 
             with torch.no_grad():
                 predictions = self.model.predict_without_correction(val_data.net_input)
@@ -109,6 +114,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print('outcome', best, epoch)
                 break
         self.model.load_state_dict(best_state)
 
@@ -135,14 +141,20 @@ class ModelWrapper:
         patience = 20
         counter = 0
         best_state = None
+        loader = DataLoader(
+            TensorDataset(train_data.net_input, train_treated.net_input, train_control.net_input),
+            batch_size=32,
+            shuffle=True,
+        )
         for epoch in range(1000):
-            optimizer.zero_grad()
-            actual_riesz = self.model.predict_riesz(train_data.net_input)
-            treated_riesz = self.model.predict_riesz(train_treated.net_input)
-            control_riesz = self.model.predict_riesz(train_control.net_input)
-            loss = criterion(actual_riesz, treated_riesz, control_riesz)
-            loss.backward()
-            optimizer.step()
+            for x, xt, xc in loader:
+                optimizer.zero_grad()
+                actual_riesz = self.model.predict_riesz(x)
+                treated_riesz = self.model.predict_riesz(xt)
+                control_riesz = self.model.predict_riesz(xc)
+                loss = criterion(actual_riesz, treated_riesz, control_riesz)
+                loss.backward()
+                optimizer.step()
 
             with torch.no_grad():
                 actual_riesz = self.model.predict_riesz(val_data.net_input)
@@ -156,58 +168,111 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print('riesz', best, epoch)
                 break
         self.model.load_state_dict(best_state)
 
 
 class Model(nn.Module):
-    def __init__(self, hidden_size=64, type="shared_base"):
+    def __init__(self, hidden_size=100, type="shared_base"):
         super(Model, self).__init__()
         if type == "shared_base":
             shared_layers = nn.Sequential(
-                nn.Linear(11, hidden_size),
-                nn.ReLU(),
+                nn.Linear(25, hidden_size),
+                nn.ELU(),
+                nn.Dropout(0.2),
                 nn.Linear(hidden_size, hidden_size),
-                nn.ReLU(),
+                nn.ELU(),
+                nn.Dropout(0.2),
+                # nn.Linear(hidden_size, hidden_size),
+                # nn.ELU(),
+                # nn.Dropout(0.2),
             )
             self.outcome_base = shared_layers
             self.riesz_base = shared_layers
         elif type == "separate_nets":
             self.outcome_base = nn.Sequential(
-                nn.Linear(11, hidden_size),
-                nn.ReLU(),
+                nn.Linear(25, hidden_size),
+                nn.ELU(),
+                nn.Dropout(0.2),
                 nn.Linear(hidden_size, hidden_size),
-                nn.ReLU(),
+                nn.ELU(),
+                nn.Dropout(0.2),
             )
             self.riesz_base = nn.Sequential(
-                nn.Linear(11, hidden_size),
-                nn.ReLU(),
+                nn.Linear(25, hidden_size),
+                nn.ELU(),
+                nn.Dropout(0.2),
                 nn.Linear(hidden_size, hidden_size),
-                nn.ReLU(),
+                nn.ELU(),
+                nn.Dropout(0.2),
             )
-        self.outcome_layers = nn.Sequential(
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, 1),
-        )
-        self.riesz_layers = nn.Sequential(
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, 1),
-        )
+        self.outcome_layers = BiHead(hidden_size)
+        self.riesz_layers = Head(hidden_size)
         self.epsilon = torch.nn.Parameter(torch.tensor(0.0))
 
     def predict_outcome(self, x):
-        return self.outcome_layers(self.outcome_base(x)) + self.epsilon * self.predict_riesz(x)
+        return self.predict_without_correction(x) + self.epsilon * self.predict_riesz(x)
 
     def predict_without_correction(self, x):
-        return self.outcome_layers(self.outcome_base(x))
+        treat = x[:, 0].reshape(-1, 1)
+        x = x[:, 1:]
+        x = self.outcome_base(x)
+        return self.outcome_layers(x, treat)
 
     def predict_riesz(self, x):
+        treat = x[:, 0].reshape(-1, 1)
+        x = x[:, 1:]
         x = self.riesz_base(x)
-        return self.riesz_layers(x)
+        return self.riesz_layers(x, treat)
 
 
 class RieszLoss(nn.Module):
     def forward(self, actual_riesz, treated_riesz, control_riesz):
         return torch.mean(actual_riesz**2 - 2 * (treated_riesz - control_riesz))
+
+
+class BiHead(nn.Module):
+    def __init__(self, hidden_size):
+        super(BiHead, self).__init__()
+        self.t = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.ELU(),
+            nn.Dropout(0.2),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ELU(),
+            nn.Dropout(0.2),
+            nn.Linear(hidden_size, 1),
+        )
+        self.c = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.ELU(),
+            nn.Dropout(0.2),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ELU(),
+            nn.Dropout(0.2),
+            nn.Linear(hidden_size, 1),
+        )
+
+    def forward(self, x, treat):
+        xt = self.t(x)
+        xc = self.c(x)
+        return treat * xt + (1 - treat) * xc
+
+
+class Head(nn.Module):
+    def __init__(self, hidden_size):
+        super(Head, self).__init__()
+        self.layer = nn.Sequential(
+            nn.Linear(hidden_size + 1, hidden_size),
+            nn.ELU(),
+            nn.Dropout(0.2),
+            # nn.Linear(hidden_size, hidden_size),
+            # nn.ELU(),
+            # nn.Dropout(0.2),
+            nn.Linear(hidden_size, 1),
+        )
+
+    def forward(self, x, treat):
+        x = torch.cat((x, treat), dim=1)
+        return self.layer(x)
