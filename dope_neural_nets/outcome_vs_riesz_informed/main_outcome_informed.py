@@ -24,8 +24,8 @@ def run_experiment(data):
     return {
         "estimate": estimate,
         "variance": variance,
-        "lower": estimate - 1.96 * (variance / 1000) ** 0.5,
-        "upper": estimate + 1.96 * (variance / 1000) ** 0.5,
+        "lower": estimate - 1.96 * (variance / data.raw_data.shape[0]) ** 0.5,
+        "upper": estimate + 1.96 * (variance / data.raw_data.shape[0]) ** 0.5,
     }
 
 
