@@ -57,6 +57,7 @@ class ModelWrapper:
                 counter += 1
             if counter >= patience:
                 break
+        print(outcome_loss, riesz_loss,test_loss)
         self.model.load_state_dict(best_state)
 
     def train_outcome_head(self, data: Dataset, train_shared_layers):

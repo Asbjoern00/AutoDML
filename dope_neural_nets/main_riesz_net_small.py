@@ -28,6 +28,6 @@ estimates = []
 for i in range(1000):
     result = run_experiment()
     estimates.append(result["estimate"])
-    residuals = [np.abs(est-truth) for est in estimates if np.abs(est-truth) <= 0.5]
+    residuals = [np.abs(est-truth) for est in estimates]
     mse = sum(residual**2 for residual in residuals) / len(residuals)
     print(i, "Estimate:", result['estimate'], "RMSE:", mse**0.5)
