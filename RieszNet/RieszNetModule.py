@@ -8,11 +8,12 @@ class RieszNetModule:
         self.loss = loss
 
     def fit(self, data):
-
+        self.network.train()
         train_data, val_data = data.test_train_split(train_proportion=self.optimizer.early_stopping["proportion"])
 
         best_val_loss = float("inf")
         patience_counter = 0
+        best_state = None
 
         for epoch in range(self.optimizer.epochs):
             self.optimizer.optim.zero_grad()
@@ -45,18 +46,22 @@ class RieszNetModule:
                     print(f"early stopping at epoch {epoch}")
                     break
         self.network.load_state_dict(best_state)
-        print(((adjusted_outcome_prediction_val-val_data.outcomes_tensor)**2).mean())
+        print(((adjusted_outcome_prediction_val-val_data.outcomes_tensor)**2).mean(), (rr_output_val**2-2*rr_functional_val).mean(), val_loss)
 
     def get_plugin(self, data):
+        self.network.eval()
         return self.network.get_plugin_estimate(data)
 
     def get_correction(self, data):
+        self.network.eval()
         return self.network.get_correction(data).detach().numpy()
 
     def get_functional(self, data):
+        self.network.eval()
         return self.network.get_functional(data).detach().numpy()
 
     def get_double_robust(self, data):
+        self.network.eval()
         return self.network.get_double_robust(data)
 
 

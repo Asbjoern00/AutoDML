@@ -101,10 +101,7 @@ class ATERieszNetwork(nn.Module):
 
 class ATERieszNetworkSimple(nn.Module):
     def _forward_shared(self, data):
-        treatments = data.treatments_tensor
-        covariates = data.covariates_tensor
-        x = torch.cat((treatments, covariates), dim=1)
-        return self.shared(x)
+        return self.shared(data.net_input)
 
     def __init__(
         self,
@@ -170,8 +167,13 @@ class ATERieszNetworkSimple(nn.Module):
         return plugin + np.mean(correction.detach().numpy())
 
     def forward(self, data):
-        # Riesz functional
-        rr_functional = self.functional(data, self.get_riesz_representer)
+        # Functional applied to RR
+        #rr_functional = self.functional(data, self.get_riesz_representer)
+        data_treated,data_untreated = data.get_counterfactual_datasets()
+
+        z_treated = self._forward_shared(data_treated)
+        z_untreated = self._forward_shared(data_untreated)
+        rr_functional = self.rr_head(z_treated) - self.rr_head(z_untreated)
 
         # Shared representation
         z = self._forward_shared(data)

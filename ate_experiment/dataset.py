@@ -92,6 +92,10 @@ class Dataset:
         return 1 / (1 + np.exp(-logit))
 
     @property
+    def net_input(self):
+        return torch.from_numpy(self.raw_data[:, [self.treatment_column] + self.covariate_columns].astype(np.float32))
+
+    @property
     def outcomes(self):
         return self.raw_data[:, self.outcome_column]
 
