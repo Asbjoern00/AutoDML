@@ -1,5 +1,7 @@
 import numpy as np
-from ate_experiment.dataset import Dataset
+import torch
+from dope_neural_nets.model import ModelWrapper
+from dope_neural_nets.dataset import Dataset
 from RieszNet.RieszNetModule import RieszNetModule
 from RieszNet.Optimizer import Optimizer
 from RieszNet.RieszNetATE import ATERieszNetworkSimple
@@ -13,10 +15,14 @@ m = 1000
 n_folds = 5
 number_of_covariates = 10
 rr_weights = 2.0**np.arange(start = -5, stop = 5, step = 1)
+#rr_weights = [10.0]
 tmle_weight = 0.0
-outcome_mse_weight = 1.0
 
-for rr_weight in rr_weights[::-1]:
+
+np.random.seed(42)
+torch.manual_seed(42)
+
+for rr_weight in rr_weights:
 
     est_plugin_riesz = np.zeros(m)
 
@@ -39,13 +45,14 @@ for rr_weight in rr_weights[::-1]:
         functional_riesz = np.zeros(data.treatments.shape[0])
         functional_propensity = np.zeros(data.treatments.shape[0])
         n_evaluated = 0
+        estimate_components = []
         for j in range(n_folds):
             eval_data, train_data = data.get_fit_and_train_folds(folds, j)
             n_eval_data = eval_data.treatments.shape[0]
 
             network = ATERieszNetworkSimple(ate_functional, features_in=number_of_covariates + 1)
             optim = Optimizer(network)
-            loss = RieszNetLoss(rr_weight=rr_weight, tmle_weight=tmle_weight, outcome_mse_weight=outcome_mse_weight)
+            loss = RieszNetLoss(rr_weight=rr_weight, tmle_weight=tmle_weight)
             riesz_net = RieszNetModule(network=network, loss=loss, optimizer=optim)
 
             riesz_net.fit(data)
@@ -54,6 +61,13 @@ for rr_weight in rr_weights[::-1]:
             correction_riesz[n_evaluated : n_evaluated + n_eval_data] = riesz_net.get_correction(eval_data).flatten()
 
             n_evaluated = n_evaluated + n_eval_data
+#            model_wrapper = ModelWrapper()
+#            model_wrapper.train_as_riesz_net(train_data, rr_w=rr_weight)
+#            estimate_components.append(model_wrapper.get_estimate_components(eval_data))
+
+#        estimate_components = torch.concat(estimate_components, dim=0)
+#        estimate = torch.mean(estimate_components).item()
+#        variance = torch.var(estimate_components).item()
 
         est_plugin_riesz[i] = np.mean(functional_riesz)
 

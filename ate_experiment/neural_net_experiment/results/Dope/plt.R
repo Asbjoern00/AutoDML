@@ -9,7 +9,7 @@ agg_res <- results  %>%
   summarise(bias = mean(truth-riesz_estimate), variance = mean((riesz_estimate-mean(riesz_estimate))^2), rmse = sqrt(mean((truth-riesz_estimate)^2)), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)))
 
 
-agg_res %>% ggplot() + geom_line(aes(x = rr_weight, y = variance, color = "variance")) + geom_line(aes(x= rr_weight, y = bias^2, color = "bias^2")) + scale_x_log10() + theme_bw()
+#agg_res %>% ggplot() + geom_line(aes(x = rr_weight, y = variance, color = "variance")) + geom_line(aes(x= rr_weight, y = bias^2, color = "bias^2")) + scale_x_log10() + theme_bw()
 
 results %>%
   mutate(normalized = sqrt(1000)*(riesz_estimate-truth)/sqrt(riesz_variance)) %>%

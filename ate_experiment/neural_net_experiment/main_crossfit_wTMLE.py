@@ -15,9 +15,8 @@ n_folds = 5
 number_of_covariates = 10
 rr_weights = 2.0**np.arange(start = -5, stop = 5, step = 1)
 tmle_weight = 1.0
-outcome_mse_weight = 1.0
 
-for rr_weight in rr_weights:
+for rr_weight in rr_weights[::-1]:
 
     est_plugin_riesz = np.zeros(m)
 
@@ -46,7 +45,7 @@ for rr_weight in rr_weights:
 
             network = ATERieszNetworkSimple(ate_functional, features_in=number_of_covariates + 1)
             optim = Optimizer(network)
-            loss = RieszNetLoss(rr_weight=rr_weight, tmle_weight=tmle_weight, outcome_mse_weight=outcome_mse_weight)
+            loss = RieszNetLoss(rr_weight=rr_weight, tmle_weight=tmle_weight)
             riesz_net = RieszNetModule(network=network, loss=loss, optimizer=optim)
 
             riesz_net.fit(data)
