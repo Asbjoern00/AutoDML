@@ -32,43 +32,45 @@ class ModelWrapper:
         val_treated, val_control = val_data.get_counterfactual_datasets()
         best = 1e6
         patience = 20
-
-        best = self._train_as_riesz_net(
-            best,
-            lr,
-            mse_w,
-            outcome_criterion,
-            patience,
-            riesz_criterion,
-            rr_w,
-            tmle_criterion,
-            tmle_w,
-            train_control,
-            train_data,
-            train_treated,
-            val_control,
-            val_data,
-            val_treated,
-            wd,
-        )
-        self._train_as_riesz_net(
-            best,
-            lr / 10,
-            mse_w,
-            outcome_criterion,
-            patience,
-            riesz_criterion,
-            rr_w,
-            tmle_criterion,
-            tmle_w,
-            train_control,
-            train_data,
-            train_treated,
-            val_control,
-            val_data,
-            val_treated,
-            wd,
-        )
+        if isinstance(lr, list):
+            for lr_ in lr:
+                best = self._train_as_riesz_net(
+                    best,
+                    lr,
+                    mse_w,
+                    outcome_criterion,
+                    patience,
+                    riesz_criterion,
+                    rr_w,
+                    tmle_criterion,
+                    tmle_w,
+                    train_control,
+                    train_data,
+                    train_treated,
+                    val_control,
+                    val_data,
+                    val_treated,
+                    wd,
+                )
+        else:
+            self._train_as_riesz_net(
+                best,
+                lr,
+                mse_w,
+                outcome_criterion,
+                patience,
+                riesz_criterion,
+                rr_w,
+                tmle_criterion,
+                tmle_w,
+                train_control,
+                train_data,
+                train_treated,
+                val_control,
+                val_data,
+                val_treated,
+                wd,
+            )
 
     def _train_as_riesz_net(
         self,
@@ -145,8 +147,12 @@ class ModelWrapper:
         loader = DataLoader(
             TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=32, shuffle=True
         )
-        best = self._train_outcome_head(criterion, loader, lr, val_data, wd, 1e6, patience)
-        self._train_outcome_head(criterion, loader, lr / 10, val_data, wd, best, patience)
+        best = 1e6
+        if isinstance(lr, list):
+            for lr_ in lr:
+                best = self._train_outcome_head(criterion, loader, lr_, val_data, wd, best, patience)
+        else:
+            self._train_outcome_head(criterion, loader, lr, val_data, wd, best, patience)
 
     def _train_outcome_head(self, criterion, loader, lr, val_data, wd, best, patience=20):
         optimizer = torch.optim.Adam(
@@ -173,7 +179,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
-                print('outcome', best, epoch)
+                print("outcome", best, epoch)
                 break
         self.model.load_state_dict(best_state)
         return best
@@ -199,8 +205,14 @@ class ModelWrapper:
         best = 1e6
         patience = 20
 
-        best = self._train_riesz_head(best, criterion, loader, lr, patience, val_control, val_data, val_treated)
-        self._train_riesz_head(best, criterion, loader, lr / 10, patience, val_control, val_data, val_treated)
+        best = 1e6
+        if isinstance(lr, list):
+            for lr_ in lr:
+                best = self._train_riesz_head(
+                    best, criterion, loader, lr_, patience, val_control, val_data, val_treated
+                )
+        else:
+            self._train_riesz_head(best, criterion, loader, lr, patience, val_control, val_data, val_treated)
 
     def _train_riesz_head(self, best, criterion, loader, lr, patience, val_control, val_data, val_treated):
         optimizer = torch.optim.Adam(
@@ -232,7 +244,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
-                print('riesz', best, epoch)
+                print("riesz", best, epoch)
                 break
         self.model.load_state_dict(best_state)
         return best
