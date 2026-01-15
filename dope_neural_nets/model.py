@@ -202,7 +202,6 @@ class ModelWrapper:
             batch_size=32,
             shuffle=True,
         )
-        best = 1e6
         patience = 20
 
         best = 1e6
