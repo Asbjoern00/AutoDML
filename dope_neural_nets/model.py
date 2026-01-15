@@ -36,7 +36,7 @@ class ModelWrapper:
             for lr_ in lr:
                 best = self._train_as_riesz_net(
                     best,
-                    lr,
+                    lr_,
                     mse_w,
                     outcome_criterion,
                     patience,
