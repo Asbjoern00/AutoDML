@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 class ModelWrapper:
-    def __init__(self, in_=10, hidden_size=100, type="shared_base"):
-        self.model = Model(in_, hidden_size, type)
+    def __init__(self, in_, hidden_size, n_shared, n_not_shared, type_="shared_base"):
+        self.model = Model(in_, hidden_size, type_, n_shared, n_not_shared)
 
     def get_estimate_components(self, data: Dataset):
         self.model.eval()
@@ -69,6 +69,7 @@ class ModelWrapper:
             val_treated,
             wd,
         )
+
     def _train_as_riesz_net(
         self,
         best,
@@ -236,29 +237,28 @@ class ModelWrapper:
 
 
 class Model(nn.Module):
-    def __init__(self, in_, hidden_size, type):
+    def __init__(self, in_, hidden_size, type_, n_shared, n_not_shared):
         super(Model, self).__init__()
-        if type == "shared_base":
-            shared_layers = nn.Sequential(
-                HiddenLayer(in_, hidden_size),
-                HiddenLayer(hidden_size, hidden_size),
-                HiddenLayer(hidden_size, hidden_size),
-            )
+        if type_ == "shared_base":
+            shared_layers = [HiddenLayer(in_, hidden_size)]
+            for i in range(n_shared - 1):
+                shared_layers.append(HiddenLayer(hidden_size, hidden_size))
+            shared_layers = nn.Sequential(*shared_layers)
             self.outcome_base = shared_layers
             self.riesz_base = shared_layers
-        elif type == "separate_nets":
-            self.outcome_base = nn.Sequential(
-                HiddenLayer(in_, hidden_size),
-                HiddenLayer(hidden_size, hidden_size),
-                HiddenLayer(hidden_size, hidden_size),
-            )
-            self.riesz_base = nn.Sequential(
-                HiddenLayer(in_, hidden_size),
-                HiddenLayer(hidden_size, hidden_size),
-                HiddenLayer(hidden_size, hidden_size),
-            )
-        self.outcome_layers = BiHead(hidden_size, hidden_size)
-        self.riesz_layers = Head(hidden_size + 1, hidden_size)
+        elif type_ == "separate_nets":
+            outcome_base = [HiddenLayer(in_, hidden_size)]
+            for i in range(n_shared - 1):
+                outcome_base.append(HiddenLayer(hidden_size, hidden_size))
+            self.outcome_base = nn.Sequential(*outcome_base)
+            riesz_base = []
+            riesz_base.append(HiddenLayer(in_, hidden_size))
+            for i in range(n_shared - 1):
+                riesz_base.append(HiddenLayer(hidden_size, hidden_size))
+            self.riesz_base = nn.Sequential(*riesz_base)
+
+        self.outcome_layers = BiHead(hidden_size, hidden_size, n_not_shared)
+        self.riesz_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
         self.epsilon = torch.nn.Parameter(torch.tensor(0.0))
 
     def predict_outcome(self, x):
@@ -283,36 +283,34 @@ class RieszLoss(nn.Module):
 
 
 class BiHead(nn.Module):
-    def __init__(self, in_, hidden_size):
+    def __init__(self, in_, hidden_size, n_hidden):
         super(BiHead, self).__init__()
-        self.t = nn.Sequential(
-            HiddenLayer(in_, hidden_size),
-            HiddenLayer(hidden_size, hidden_size),
-            nn.Linear(hidden_size, 1),
-        )
-        self.c = nn.Sequential(
-            HiddenLayer(in_, hidden_size),
-            nn.Linear(hidden_size, 1),
-        )
+        t = [HiddenLayer(in_, hidden_size)]
+        for i in range(n_hidden - 1):
+            t.append(HiddenLayer(hidden_size, hidden_size))
+        self.t_layers = nn.Sequential(*t)
+        c = [HiddenLayer(in_, hidden_size)]
+        for i in range(n_hidden - 1):
+            c.append(HiddenLayer(hidden_size, hidden_size))
+        self.c_layers = nn.Sequential(*c)
 
     def forward(self, x, treat):
-        xt = self.t(x)
-        xc = self.c(x)
+        xt = self.t_layers(x)
+        xc = self.c_layers(x)
         return treat * xt + (1 - treat) * xc
 
 
 class Head(nn.Module):
-    def __init__(self, in_, hidden_size):
+    def __init__(self, in_, hidden_size, n_hidden):
         super(Head, self).__init__()
-        self.layer = nn.Sequential(
-            HiddenLayer(in_, hidden_size),
-            HiddenLayer(hidden_size, hidden_size),
-            nn.Linear(hidden_size, 1),
-        )
+        layers = [HiddenLayer(in_, hidden_size)]
+        for i in range(n_hidden - 1):
+            layers.append(HiddenLayer(hidden_size, hidden_size))
+        self.layers = nn.Sequential(*layers)
 
     def forward(self, x, treat):
         x = torch.cat((x, treat), dim=1)
-        return self.layer(x)
+        return self.layers(x)
 
 
 class HiddenLayer(nn.Module):

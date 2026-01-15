@@ -15,7 +15,7 @@ def run_experiment():
     estimate_components = []
     for j in range(5):
         fit_fold, train_folds = Dataset.get_fit_and_train_folds(folds, j)
-        model_wrapper = ModelWrapper(type='separate_nets')
+        model_wrapper = ModelWrapper(type_='separate_nets')
         model_wrapper.train_outcome_head(train_folds, train_shared_layers=True)
         model_wrapper.train_riesz_head(train_folds, train_shared_layers=True)
         estimate_components.append(model_wrapper.get_estimate_components(fit_fold))
