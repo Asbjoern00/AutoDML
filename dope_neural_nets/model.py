@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 class ModelWrapper:
-    def __init__(self, type="shared_base"):
-        self.model = Model(type=type)
+    def __init__(self, in_=10, hidden_size=100, type="shared_base"):
+        self.model = Model(in_, hidden_size, type)
 
     def get_estimate_components(self, data: Dataset):
         self.model.eval()
@@ -114,12 +114,12 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
-                print('outcome', best, epoch)
+                print("outcome", best, epoch)
                 break
         self.model.load_state_dict(best_state)
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
-            lr=lr/10,
+            lr=lr / 10,
             weight_decay=1e-3,
         )
 
@@ -196,7 +196,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
-                print('riesz', best, epoch)
+                print("riesz", best, epoch)
                 break
         self.model.load_state_dict(best_state)
         self.model.train()
@@ -210,7 +210,7 @@ class ModelWrapper:
         criterion = RieszLoss()
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
-            lr=lr/10,
+            lr=lr / 10,
             weight_decay=1e-3,
         )
         patience = 20
@@ -244,41 +244,29 @@ class ModelWrapper:
 
 
 class Model(nn.Module):
-    def __init__(self, hidden_size=100, type="shared_base"):
+    def __init__(self, in_, hidden_size, type):
         super(Model, self).__init__()
         if type == "shared_base":
             shared_layers = nn.Sequential(
-                nn.Linear(25, hidden_size),
-                nn.ELU(),
-                nn.Dropout(0.2),
-                nn.Linear(hidden_size, hidden_size),
-                nn.ELU(),
-                nn.Dropout(0.2),
-                nn.Linear(hidden_size, hidden_size),
-                nn.ELU(),
-                nn.Dropout(0.2),
+                HiddenLayer(in_, hidden_size),
+                HiddenLayer(hidden_size, hidden_size),
+                HiddenLayer(hidden_size, hidden_size),
             )
             self.outcome_base = shared_layers
             self.riesz_base = shared_layers
         elif type == "separate_nets":
             self.outcome_base = nn.Sequential(
-                nn.Linear(25, hidden_size),
-                nn.ELU(),
-                nn.Dropout(0.2),
-                nn.Linear(hidden_size, hidden_size),
-                nn.ELU(),
-                nn.Dropout(0.2),
+                HiddenLayer(in_, hidden_size),
+                HiddenLayer(hidden_size, hidden_size),
+                HiddenLayer(hidden_size, hidden_size),
             )
             self.riesz_base = nn.Sequential(
-                nn.Linear(25, hidden_size),
-                nn.ELU(),
-                nn.Dropout(0.2),
-                nn.Linear(hidden_size, hidden_size),
-                nn.ELU(),
-                nn.Dropout(0.2),
+                HiddenLayer(in_, hidden_size),
+                HiddenLayer(hidden_size, hidden_size),
+                HiddenLayer(hidden_size, hidden_size),
             )
-        self.outcome_layers = BiHead(hidden_size)
-        self.riesz_layers = Head(hidden_size)
+        self.outcome_layers = BiHead(hidden_size, hidden_size)
+        self.riesz_layers = Head(hidden_size + 1, hidden_size)
         self.epsilon = torch.nn.Parameter(torch.tensor(0.0))
 
     def predict_outcome(self, x):
@@ -303,24 +291,15 @@ class RieszLoss(nn.Module):
 
 
 class BiHead(nn.Module):
-    def __init__(self, hidden_size):
+    def __init__(self, in_, hidden_size):
         super(BiHead, self).__init__()
         self.t = nn.Sequential(
-            nn.Linear(hidden_size, hidden_size),
-            nn.ELU(),
-            nn.Dropout(0.2),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ELU(),
-            nn.Dropout(0.2),
+            HiddenLayer(in_, hidden_size),
+            HiddenLayer(hidden_size, hidden_size),
             nn.Linear(hidden_size, 1),
         )
         self.c = nn.Sequential(
-            nn.Linear(hidden_size, hidden_size),
-            nn.ELU(),
-            nn.Dropout(0.2),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ELU(),
-            nn.Dropout(0.2),
+            HiddenLayer(in_, hidden_size),
             nn.Linear(hidden_size, 1),
         )
 
@@ -331,18 +310,27 @@ class BiHead(nn.Module):
 
 
 class Head(nn.Module):
-    def __init__(self, hidden_size):
+    def __init__(self, in_, hidden_size):
         super(Head, self).__init__()
         self.layer = nn.Sequential(
-            nn.Linear(hidden_size + 1, hidden_size),
-            nn.ELU(),
-            nn.Dropout(0.2),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ELU(),
-            nn.Dropout(0.2),
+            HiddenLayer(in_, hidden_size),
+            HiddenLayer(hidden_size, hidden_size),
             nn.Linear(hidden_size, 1),
         )
 
     def forward(self, x, treat):
         x = torch.cat((x, treat), dim=1)
         return self.layer(x)
+
+
+class HiddenLayer(nn.Module):
+    def __init__(self, in_, out_):
+        super(HiddenLayer, self).__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(in_, out_),
+            nn.ELU(),
+            nn.Dropout(0.2),
+        )
+
+    def forward(self, x):
+        return self.layers(x)
