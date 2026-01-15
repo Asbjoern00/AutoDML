@@ -173,6 +173,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print('outcome', best, epoch)
                 break
         self.model.load_state_dict(best_state)
         return best
@@ -231,6 +232,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print('riesz', best, epoch)
                 break
         self.model.load_state_dict(best_state)
         return best
@@ -288,10 +290,12 @@ class BiHead(nn.Module):
         t = [HiddenLayer(in_, hidden_size)]
         for i in range(n_hidden - 1):
             t.append(HiddenLayer(hidden_size, hidden_size))
+        t.append(nn.Linear(hidden_size, 1))
         self.t_layers = nn.Sequential(*t)
         c = [HiddenLayer(in_, hidden_size)]
         for i in range(n_hidden - 1):
             c.append(HiddenLayer(hidden_size, hidden_size))
+        c.append(nn.Linear(hidden_size, 1))
         self.c_layers = nn.Sequential(*c)
 
     def forward(self, x, treat):
@@ -306,6 +310,7 @@ class Head(nn.Module):
         layers = [HiddenLayer(in_, hidden_size)]
         for i in range(n_hidden - 1):
             layers.append(HiddenLayer(hidden_size, hidden_size))
+        layers.append(nn.Linear(hidden_size, 1))
         self.layers = nn.Sequential(*layers)
 
     def forward(self, x, treat):
