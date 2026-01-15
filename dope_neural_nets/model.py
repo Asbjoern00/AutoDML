@@ -18,7 +18,7 @@ class ModelWrapper:
         riesz = self.model.predict_riesz(data.net_input)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
-    def train_as_riesz_net(self, data: Dataset, rr_w=1, tmle_w=0, mse_w=1):
+    def train_as_riesz_net(self, data: Dataset, rr_w=1, tmle_w=0, mse_w=1, lr=1e-3, wd=1e-3):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = True
@@ -30,11 +30,67 @@ class ModelWrapper:
         train_data, val_data = data.test_train_split(0.8)
         train_treated, train_control = train_data.get_counterfactual_datasets()
         val_treated, val_control = val_data.get_counterfactual_datasets()
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=1e-3)
         best = 1e6
         patience = 20
+
+        best = self._train_as_riesz_net(
+            best,
+            lr,
+            mse_w,
+            outcome_criterion,
+            patience,
+            riesz_criterion,
+            rr_w,
+            tmle_criterion,
+            tmle_w,
+            train_control,
+            train_data,
+            train_treated,
+            val_control,
+            val_data,
+            val_treated,
+            wd,
+        )
+        self._train_as_riesz_net(
+            best,
+            lr / 10,
+            mse_w,
+            outcome_criterion,
+            patience,
+            riesz_criterion,
+            rr_w,
+            tmle_criterion,
+            tmle_w,
+            train_control,
+            train_data,
+            train_treated,
+            val_control,
+            val_data,
+            val_treated,
+            wd,
+        )
+    def _train_as_riesz_net(
+        self,
+        best,
+        lr,
+        mse_w,
+        outcome_criterion,
+        patience,
+        riesz_criterion,
+        rr_w,
+        tmle_criterion,
+        tmle_w,
+        train_control,
+        train_data,
+        train_treated,
+        val_control,
+        val_data,
+        val_treated,
+        wd,
+    ):
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=lr)
         counter = 0
-        best_state = None
+        best_state = copy.deepcopy(self.model.state_dict())
         for epoch in range(1000):
             optimizer.zero_grad()
             actual_riesz = self.model.predict_riesz(train_data.net_input)
@@ -48,7 +104,7 @@ class ModelWrapper:
             for name, param in self.model.named_parameters():
                 if name != "epsilon":
                     l2_penalty += torch.sum(param**2)
-            loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w + l2_penalty * 1e-3
+            loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w + l2_penalty * wd
             loss.backward()
             optimizer.step()
 
@@ -72,6 +128,7 @@ class ModelWrapper:
                 break
         print(outcome_loss, riesz_loss,test_loss)
         self.model.load_state_dict(best_state)
+        return best
 
     def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20):
         self.model.train()
