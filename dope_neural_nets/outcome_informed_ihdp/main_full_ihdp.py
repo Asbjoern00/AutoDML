@@ -29,17 +29,17 @@ def run_experiment(data):
 
 
 results = []
-for i in range(100):
-    data = Dataset.load_redrawn_t_replication(i + 1)
+for i in range(1000):
+    data = Dataset.load_chernozhukov_replication(i + 1)
     result = run_experiment(data)
     results.append(result)
     residuals = [np.abs(result["estimate"] - result["truth"]) for result in results]
-    mse = sum(residual**2 for residual in residuals) / len(residuals)
+    MAE = sum(residual for residual in residuals) / len(residuals)
     coverage = sum(result["lower"] <= result["truth"] <= result["upper"] for result in results) / len(results)
-    print(i, data.get_truth(), "Estimate:", result["estimate"], "RMSE:", mse**0.5, "Coverage:", coverage)
+    print(i, data.get_truth(), "Estimate:", result["estimate"], "MAE:", MAE, "Coverage:", coverage)
 
 
 import pandas as pd
 
 estimates = pd.DataFrame(results)
-estimates.to_csv("dope_neural_nets/outcome_informed_ihdp/outcome_informed_ihdp_redrawn.csv", index=False)
+estimates.to_csv("dope_neural_nets/outcome_informed_ihdp/outcome_informed_ihdp_full.csv", index=False)
