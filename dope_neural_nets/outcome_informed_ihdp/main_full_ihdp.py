@@ -6,16 +6,12 @@ from dope_neural_nets.dataset import Dataset
 np.random.seed(42)
 torch.manual_seed(42)
 
-
 def run_experiment(data):
-    folds = data.split_into_folds(5)
     estimate_components = []
-    for j in range(5):
-        fit_fold, train_folds = Dataset.get_fit_and_train_folds(folds, j)
-        model_wrapper = ModelWrapper(in_=25, hidden_size=100, n_shared=3, n_not_shared=2)
-        model_wrapper.train_outcome_head(train_folds, train_shared_layers=True, lr=1e-3)
-        model_wrapper.train_riesz_head(train_folds, train_shared_layers=False, lr=1e-3)
-        estimate_components.append(model_wrapper.get_estimate_components(fit_fold))
+    model_wrapper = ModelWrapper(in_=25, hidden_size=100, n_shared=3, n_not_shared=2)
+    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3)
+    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3)
+    estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()
     variance = torch.var(estimate_components).item()

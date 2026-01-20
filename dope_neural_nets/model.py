@@ -136,7 +136,7 @@ class ModelWrapper:
         self.model.load_state_dict(best_state)
         return best
 
-    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20):
+    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=30):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -159,7 +159,7 @@ class ModelWrapper:
             optimizer,
             mode="min",
             factor=0.5,
-            patience=5,
+            patience=10,
             threshold=1e-3,
             threshold_mode="rel",
             cooldown=2,
@@ -191,7 +191,7 @@ class ModelWrapper:
                 break
         self.model.load_state_dict(best_state)
 
-    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=20):
+    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=30):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -218,7 +218,7 @@ class ModelWrapper:
             optimizer,
             mode="min",
             factor=0.5,
-            patience=5,
+            patience=10,
             threshold=1e-3,
             threshold_mode="rel",
             cooldown=2,
@@ -341,7 +341,7 @@ class HiddenLayer(nn.Module):
         self.layers = nn.Sequential(
             nn.Linear(in_, out_),
             nn.ELU(),
-            nn.Dropout(0.2),
+            #nn.Dropout(0.2),
         )
 
     def forward(self, x):
