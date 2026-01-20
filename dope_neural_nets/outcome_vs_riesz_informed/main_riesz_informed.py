@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from dope_neural_nets.model import ModelWrapper
+from dope_neural_nets.outcome_informed_ihdp.model import ModelWrapper
 from dope_neural_nets.dataset import Dataset
 
 np.random.seed(42)

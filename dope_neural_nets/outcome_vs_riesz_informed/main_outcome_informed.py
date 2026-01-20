@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from dope_neural_nets.model import ModelWrapper
+from dope_neural_nets.outcome_informed_ihdp.model import ModelWrapper
 from dope_neural_nets.dataset import Dataset
 
 np.random.seed(42)
@@ -46,8 +46,6 @@ for i in range(100):
     print(
         i, data.get_truth(), "Estimate:", result["estimate"], "RMSE:", mse**0.5, "Coverage:", coverage
     )
-
-import pandas as pd
 
 # estimates = pd.DataFrame(results)
 # estimates.to_csv("dope_neural_nets/outcome_vs_riesz_informed/outcome_informed.csv", index=False)

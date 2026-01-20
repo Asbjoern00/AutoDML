@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from dope_neural_nets.model import ModelWrapper
 from dope_neural_nets.dataset import Dataset
 from RieszNet.RieszNetModule import RieszNetModule
 from RieszNet.Optimizer import Optimizer

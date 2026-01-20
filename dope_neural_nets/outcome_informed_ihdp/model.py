@@ -97,6 +97,7 @@ class ModelWrapper:
         counter = 0
         best_state = copy.deepcopy(self.model.state_dict())
         for epoch in range(1000):
+            self.model.train()
             for x, xt, xc, y in loader:
                 optimizer.zero_grad()
                 actual_riesz = self.model.predict_riesz(x)
@@ -113,6 +114,7 @@ class ModelWrapper:
                 loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w + l2_penalty * wd
                 loss.backward()
                 optimizer.step()
+            self.model.eval()
             with torch.no_grad():
                 actual_riesz = self.model.predict_riesz(val_data.net_input)
                 treated_riesz = self.model.predict_riesz(val_treated.net_input)
@@ -130,11 +132,11 @@ class ModelWrapper:
                 counter += 1
             if counter >= patience:
                 break
-        print(outcome_loss, riesz_loss,test_loss)
+        print(outcome_loss, riesz_loss, test_loss)
         self.model.load_state_dict(best_state)
         return best
 
-    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20):
+    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=30):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -146,35 +148,41 @@ class ModelWrapper:
         train_data, val_data = data.test_train_split(0.8)
         criterion = nn.MSELoss()
         loader = DataLoader(
-            TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=32, shuffle=True
+            TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=64, shuffle=True
         )
-        best = 1e6
-        if isinstance(lr, list):
-            for lr_ in lr:
-                best = self._train_outcome_head(criterion, loader, lr_, val_data, wd, best, patience)
-        else:
-            self._train_outcome_head(criterion, loader, lr, val_data, wd, best, patience)
-
-    def _train_outcome_head(self, criterion, loader, lr, val_data, wd, best, patience=20):
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
             lr=lr,
             weight_decay=wd,
         )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=0.5,
+            patience=10,
+            threshold=1e-3,
+            threshold_mode="rel",
+            cooldown=2,
+            min_lr=1e-6,
+        )
+        best = 1e6
         counter = 0
         best_state = copy.deepcopy(self.model.state_dict())
         for epoch in range(1000):
+            self.model.train()
             for x, y in loader:
                 optimizer.zero_grad()
                 predictions = self.model.predict_without_correction(x)
                 loss = criterion(predictions, y)
                 loss.backward()
                 optimizer.step()
+            self.model.eval()
             with torch.no_grad():
                 predictions = self.model.predict_without_correction(val_data.net_input)
-                test_loss = criterion(predictions, val_data.outcomes_tensor).item()
-            if test_loss < best:
-                best = test_loss
+                test_loss = criterion(predictions, val_data.outcomes_tensor)
+                scheduler.step(test_loss)
+            if test_loss.item() < best:
+                best = test_loss.item()
                 counter = 0
                 best_state = copy.deepcopy(self.model.state_dict())
             else:
@@ -182,9 +190,8 @@ class ModelWrapper:
             if counter >= patience:
                 break
         self.model.load_state_dict(best_state)
-        return best
 
-    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3):
+    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=30):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -199,29 +206,29 @@ class ModelWrapper:
         val_treated, val_control = val_data.get_counterfactual_datasets()
         loader = DataLoader(
             TensorDataset(train_data.net_input, train_treated.net_input, train_control.net_input),
-            batch_size=32,
+            batch_size=64,
             shuffle=True,
         )
-        patience = 20
-
-        best = 1e6
-        if isinstance(lr, list):
-            for lr_ in lr:
-                best = self._train_riesz_head(
-                    best, criterion, loader, lr_, patience, val_control, val_data, val_treated
-                )
-        else:
-            self._train_riesz_head(best, criterion, loader, lr, patience, val_control, val_data, val_treated)
-
-    def _train_riesz_head(self, best, criterion, loader, lr, patience, val_control, val_data, val_treated):
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
             lr=lr,
             weight_decay=1e-3,
         )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=0.5,
+            patience=10,
+            threshold=1e-3,
+            threshold_mode="rel",
+            cooldown=2,
+            min_lr=1e-6,
+        )
+        best = 1e6
         best_state = copy.deepcopy(self.model.state_dict())
         counter = 0
         for epoch in range(1000):
+            self.model.train()
             for x, xt, xc in loader:
                 optimizer.zero_grad()
                 actual_riesz = self.model.predict_riesz(x)
@@ -230,14 +237,15 @@ class ModelWrapper:
                 loss = criterion(actual_riesz, treated_riesz, control_riesz)
                 loss.backward()
                 optimizer.step()
-
+            self.model.eval()
             with torch.no_grad():
                 actual_riesz = self.model.predict_riesz(val_data.net_input)
                 treated_riesz = self.model.predict_riesz(val_treated.net_input)
                 control_riesz = self.model.predict_riesz(val_control.net_input)
-                test_loss = criterion(actual_riesz, treated_riesz, control_riesz).item()
-            if test_loss < best:
-                best = test_loss
+                test_loss = criterion(actual_riesz, treated_riesz, control_riesz)
+                scheduler.step(test_loss)
+            if test_loss.item() < best:
+                best = test_loss.item()
                 counter = 0
                 best_state = copy.deepcopy(self.model.state_dict())
             else:
@@ -245,7 +253,6 @@ class ModelWrapper:
             if counter >= patience:
                 break
         self.model.load_state_dict(best_state)
-        return best
 
 
 class Model(nn.Module):
@@ -334,7 +341,7 @@ class HiddenLayer(nn.Module):
         self.layers = nn.Sequential(
             nn.Linear(in_, out_),
             nn.ELU(),
-            nn.Dropout(0.2),
+            #nn.Dropout(0.2),
         )
 
     def forward(self, x):
