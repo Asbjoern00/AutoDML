@@ -277,7 +277,7 @@ class Model(nn.Module):
             self.riesz_base = nn.Sequential(*riesz_base)
 
         self.outcome_layers = BiHead(hidden_size, hidden_size, n_not_shared)
-        self.riesz_layers = Head(hidden_size + 1, hidden_size, 2)
+        self.riesz_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
         self.epsilon = torch.nn.Parameter(torch.tensor(0.0))
 
     def predict_outcome(self, x):
@@ -304,17 +304,21 @@ class RieszLoss(nn.Module):
 class BiHead(nn.Module):
     def __init__(self, in_, hidden_size, n_hidden):
         super(BiHead, self).__init__()
-        if n_hidden>0:
-            base = [HiddenLayer(in_, hidden_size)]
+        if n_hidden > 0:
+            t = [HiddenLayer(in_, hidden_size)]
             for i in range(n_hidden - 1):
-                base.append(HiddenLayer(hidden_size, hidden_size))
-            base_layers = nn.Sequential(*base)
-            self.t_layers = nn.Sequential(base_layers, nn.Linear(hidden_size, 1))
-            self.c_layers = nn.Sequential(base_layers, nn.Linear(hidden_size, 1))
+                t.append(HiddenLayer(hidden_size, hidden_size))
+            t.append(nn.Linear(hidden_size, 1))
+            self.t_layers = nn.Sequential(*t)
+
+            c = [HiddenLayer(in_, hidden_size)]
+            for i in range(n_hidden - 1):
+                c.append(HiddenLayer(hidden_size, hidden_size))
+            c.append(nn.Linear(hidden_size, 1))
+            self.c_layers = nn.Sequential(*c)
         else:
             self.t_layers = nn.Linear(in_, 1)
             self.c_layers = nn.Linear(in_, 1)
-
 
     def forward(self, x, treat):
         xt = self.t_layers(x)
@@ -325,7 +329,7 @@ class BiHead(nn.Module):
 class Head(nn.Module):
     def __init__(self, in_, hidden_size, n_hidden):
         super(Head, self).__init__()
-        if n_hidden>0:
+        if n_hidden > 0:
             layers = [HiddenLayer(in_, hidden_size)]
             for i in range(n_hidden - 1):
                 layers.append(HiddenLayer(hidden_size, hidden_size))
@@ -345,7 +349,6 @@ class HiddenLayer(nn.Module):
         self.layers = nn.Sequential(
             nn.Linear(in_, out_),
             nn.ELU(),
-            #nn.Dropout(0.2),
         )
 
     def forward(self, x):
