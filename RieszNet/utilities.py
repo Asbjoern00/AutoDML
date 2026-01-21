@@ -1,5 +1,5 @@
 import torch.nn as nn
-def make_sequential(in_dim,hidden_dim,out_dim,n_hidden,activation=nn.ReLU, activate_all=False):
+def make_sequential(in_dim,hidden_dim,out_dim,n_hidden,activation=nn.ELU, activate_all=False):
     layers = []
     dims = [in_dim] + [hidden_dim] * n_hidden + [out_dim]
 
