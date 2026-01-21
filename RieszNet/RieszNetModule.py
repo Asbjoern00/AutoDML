@@ -46,7 +46,7 @@ class RieszNetModule:
                     print(f"early stopping at epoch {epoch}")
                     break
         self.network.load_state_dict(best_state)
-        print(((adjusted_outcome_prediction_val-val_data.outcomes_tensor)**2).mean(), (rr_output_val**2-2*rr_functional_val).mean(), val_loss)
+        print(((outcome_prediction_val-val_data.outcomes_tensor)**2).mean(),((adjusted_outcome_prediction_val-val_data.outcomes_tensor)**2).mean(), (rr_output_val**2-2*rr_functional_val).mean(), val_loss)
 
     def get_plugin(self, data):
         self.network.eval()

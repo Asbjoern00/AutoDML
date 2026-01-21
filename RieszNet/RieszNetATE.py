@@ -9,10 +9,12 @@ class ATERieszNetwork(nn.Module):
         self,
         functional,
         features_in: int = 26,
-        hidden_shared: int = 100,
+        hidden_shared: int = 64,
         n_shared_layers: int = 3,
-        n_regression_weights: int = 100,
+        n_regression_weights: int = 64,
+        n_riesz_weights: int = 64,
         n_regression_layers: int = 2,
+        n_riesz_layers: int = 1,
     ):
         super().__init__()
 
@@ -27,7 +29,12 @@ class ATERieszNetwork(nn.Module):
             activate_all=True,
         )
 
-        self.rr_head = nn.Linear(hidden_shared, 1)
+        self.rr_head = make_sequential(
+            in_dim=hidden_shared,
+            hidden_dim=n_riesz_weights,
+            out_dim=1,
+            n_hidden=n_riesz_layers,
+        )
 
         self.treated_head = make_sequential(
             in_dim=hidden_shared,
@@ -100,8 +107,6 @@ class ATERieszNetwork(nn.Module):
 
 
 class ATERieszNetworkSimple(nn.Module):
-    def _forward_shared(self, data):
-        return self.shared(data.net_input)
 
     def __init__(
         self,
@@ -136,6 +141,9 @@ class ATERieszNetworkSimple(nn.Module):
         )
 
         self.epsilon = nn.Parameter(torch.zeros(1))
+
+    def _forward_shared(self, data):
+        return self.shared(data.net_input)
 
     def _evaluate_regression(self, data):
         adjusted_outcome_prediction = self.forward(data)[3]
