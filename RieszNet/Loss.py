@@ -20,7 +20,7 @@ class RieszLoss(nn.Module):
         super(RieszLoss, self).__init__()
 
     def forward(self, rr_output, rr_functional):
-        rr_loss = torch.mean(rr_output**2) - 2 * torch.mean(rr_functional)
+        rr_loss = torch.mean(rr_output**2 - 2 * rr_functional)
         return rr_loss
 
 class DragonNetLoss(nn.Module):
