@@ -2,11 +2,11 @@ import numpy as np
 from ate_experiment.dataset import Dataset
 from RieszNet.DOPERieszNetModule import DOPERieszNetModule
 from RieszNet.Optimizer import OptimizerParams
-from RieszNet.DOPERieszNetATE import DOPEATERieszNetworkSimple
+from RieszNet.DOPERieszNetATE import DOPEATERieszNetworkNonShared
 from average_treatment_effect.Functional.ATEFunctional import ate_functional
 import torch
 
-def run(n_shared):
+def run():
 
     truth = 2.121539888279284
     n = 1000
@@ -29,8 +29,8 @@ def run(n_shared):
     for i in range(m):
         np.random.seed(i)
         torch.manual_seed(i)
-        truths[i] = truth
 
+        truths[i] = truth
         data = Dataset.simulate_dataset(n, number_of_covariates)
         folds = data.split_into_folds(n_folds)
 
@@ -41,24 +41,22 @@ def run(n_shared):
             eval_data, train_data = data.get_fit_and_train_folds(folds, j)
             n_eval_data = eval_data.treatments.shape[0]
 
-            network = DOPEATERieszNetworkSimple(
+            network = DOPEATERieszNetworkNonShared(
                 ate_functional,
                 features_in=data.covariates.shape[1]+1,
-                n_shared_layers=n_shared,
-                n_regression_layers=2-n_shared,
-                n_riesz_layers=2-n_shared,
+                n_regression_layers=2,
+                n_riesz_layers=2,
                 n_regression_weights=64,
-                n_riesz_weights=64,
-                hidden_shared=64,
-                final_hidden_shared=64,
+                n_riesz_weights=64
             )
 
-            optim_regression = OptimizerParams([network.regression_treated,network.regression_untreated])
-            optim_rr = OptimizerParams([network.shared, network.rr_head])
+            optim_regression = OptimizerParams(
+                [network.regression_treated,network.regression_untreated,network.shared_regression]
+            )
+            optim_rr = OptimizerParams([network.rr])
 
             riesz_net = DOPERieszNetModule(network=network, regression_optimizer=optim_regression, rr_optimizer=optim_rr)
-
-            riesz_net.fit(data, informed="riesz")
+            riesz_net.fit(data, informed="separate")
 
             functional_riesz[n_evaluated : n_evaluated + n_eval_data] = riesz_net.get_functional(eval_data).flatten()
             correction_riesz[n_evaluated : n_evaluated + n_eval_data] = riesz_net.get_correction(eval_data).flatten()
@@ -73,37 +71,35 @@ def run(n_shared):
         upper_ci_riesz[i] = est_riesz[i] + 1.96 * np.sqrt(var_riesz[i] / n_evaluated)
         covered_riesz[i] = (lower_ci_riesz[i] < truths[i]) * (truths[i] < upper_ci_riesz[i])
 
-        print(f"Riesz informed, n_shared = {n_shared}")
         print(f"RMSE : {np.sqrt(np.mean((est_riesz[:i+1]-truths[:i+1])**2))}, coverage = {np.mean(covered_riesz[:i+1])}, bias : {(np.mean((est_riesz[:i+1]-truths[:i+1])))}")
         print(i)
 
-    headers = [
-        "truth",
-        "plugin_estimate_riesz",
-        "riesz_estimate",
-        "riesz_variance",
-        "riesz_lower",
-        "riesz_upper"
-    ]
-
-    results = np.array(
-        [
-            [truth for _ in range(m)],
-            est_plugin_riesz,
-            est_riesz,
-            var_riesz,
-            lower_ci_riesz,
-            upper_ci_riesz
+        headers = [
+            "truth",
+            "plugin_estimate_riesz",
+            "riesz_estimate",
+            "riesz_variance",
+            "riesz_lower",
+            "riesz_upper"
         ]
-    ).T
 
-    np.savetxt(
-        f"ate_experiment/neural_net_experiment/results/Dope/riesz_informed_n_shared_{n_shared}.csv",
-       results,
-      delimiter=",",
-      header=",".join(headers),
-       comments="",
-    )
+        results = np.array(
+            [
+                [truth for _ in range(m)],
+                est_plugin_riesz,
+                est_riesz,
+                var_riesz,
+                lower_ci_riesz,
+                upper_ci_riesz
+            ]
+         ).T
 
+        np.savetxt(
+            f"ate_experiment/neural_net_experiment/results/Dope/sep_nets.csv",
+           results,
+          delimiter=",",
+          header=",".join(headers),
+           comments="",
+        )
 if __name__ == "__main__":
     run()
