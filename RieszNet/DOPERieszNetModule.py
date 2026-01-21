@@ -4,7 +4,7 @@ import copy
 
 
 class DOPERieszNetModule:
-    def __init__(self, network, regression_optimizer , rr_optimizer):
+    def __init__(self, network, regression_optimizer, rr_optimizer):
         self.network = network
         self.regression_optimizer = regression_optimizer
         self.rr_optimizer = rr_optimizer
@@ -18,26 +18,42 @@ class DOPERieszNetModule:
 
             self.fit_regression(train_data, val_data)
 
-            for group in self.regression_optimizer.optim.param_groups:
-                for p in group["params"]:
-                    p.requires_grad = False
+            for p in self.regression_optimizer.params:
+                p.requires_grad = False
 
             self.fit_rr(train_data, val_data)
 
         if informed == "riesz":
             self.fit_rr(train_data, val_data)
 
-            for group in self.rr_optimizer.optim.param_groups:
-                for p in group["params"]:
-                    p.requires_grad = False
+            for p in self.rr_optimizer.params:
+                p.requires_grad = False
 
             self.fit_regression(train_data, val_data)
+
+        if informed == "separate":
+            for p in self.regression_optimizer.params:
+                p.requires_grad = False
+
+            self.fit_rr(train_data, val_data)
+
+            for p in self.rr_optimizer.params:
+                p.requires_grad = False
+
+            for p in self.regression_optimizer.params:
+                p.requires_grad = True
+
+            self.fit_regression(train_data, val_data)
+
 
     def fit_regression(self, train_data, val_data):
         best_val_loss = float("inf")
         patience_counter = 0
+        best_state = None
 
         for epoch in range(self.regression_optimizer.epochs):
+            if epoch == self.rr_optimizer.epochs-1:
+                print(f"No early stopping regression, MSE Loss {best_val_loss:.4f}")
             self.regression_optimizer.optim.zero_grad()
             _, _, outcome_prediction = self.network(train_data)
 
@@ -65,8 +81,11 @@ class DOPERieszNetModule:
     def fit_rr(self,train_data, val_data):
         best_val_loss = float("inf")
         patience_counter = 0
+        best_state = None
 
         for epoch in range(self.rr_optimizer.epochs):
+            if epoch == self.rr_optimizer.epochs-1:
+                print(f"No early stopping Riesz")
             self.rr_optimizer.optim.zero_grad()
             rr_prediction, rr_functional, _ = self.network(train_data)
 
