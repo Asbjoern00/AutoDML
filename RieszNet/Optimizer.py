@@ -10,11 +10,12 @@ class Optimizer:
             {
                 "params": [p for n, p in network.named_parameters() if n != "epsilon"],
                 "weight_decay": weight_decay,
+                "lr":lr
             },
-            {"params": [network.epsilon], "weight_decay": 0.0},
+            {"params": [network.epsilon], "weight_decay": 0.0, "lr":lr},
         ]
 
-        self.optim = procedure(optimizer_params, lr=lr)
+        self.optim = procedure(optimizer_params)
         self.early_stopping = early_stopping
         self.epochs = epochs
 
