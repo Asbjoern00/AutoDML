@@ -137,7 +137,7 @@ class DOPEATERieszNetworkSimple(nn.Module):
         )
 
         self.rr_head = make_sequential(
-            in_dim=final_hidden_shared, hidden_dim=n_riesz_weights, out_dim=1, n_hidden=n_riesz_layers
+            in_dim=final_hidden_shared+1, hidden_dim=n_riesz_weights, out_dim=1, n_hidden=n_riesz_layers
         )
 
         self.regression_treated = make_sequential(
@@ -160,7 +160,8 @@ class DOPEATERieszNetworkSimple(nn.Module):
 
     def get_riesz_representer(self, data):
         z = self._forward_shared(data)
-        return self.rr_head(z)
+        tz = torch.concatenate([data.treatments_tensor, z], dim= 1)
+        return self.rr_head(tz)
 
     def get_plugin_estimate(self, data):
         functional = self.get_functional(data)
@@ -184,7 +185,7 @@ class DOPEATERieszNetworkSimple(nn.Module):
         return plugin + np.mean(correction.detach().numpy())
 
     def _forward_shared(self, data):
-        return self.shared(data.net_input)
+        return self.shared(data.covariates_tensor)
 
     def forward(self, data):
         # Functional applied to RR
@@ -203,6 +204,7 @@ class DOPEATERieszNetworkNonShared(nn.Module):
         n_regression_weights: int = 64,
         n_riesz_weights: int = 64,
         n_regression_layers: int = 3,
+        shared_regression: int = 3,
         n_riesz_layers: int = 3,
     ):
         super().__init__()
@@ -212,13 +214,13 @@ class DOPEATERieszNetworkNonShared(nn.Module):
         self.rr = make_sequential(in_dim=features_in, hidden_dim=n_riesz_weights, out_dim=1, n_hidden=n_riesz_layers)
 
         self.shared_regression = make_sequential(
-            in_dim=features_in - 1, hidden_dim=n_regression_weights, n_hidden=n_regression_layers-1,out_dim=n_regression_weights,activate_all=True
+            in_dim=features_in-1, hidden_dim=n_regression_weights, n_hidden=shared_regression,out_dim=n_regression_weights,activate_all=True
         )
         self.regression_treated = make_sequential(
-            in_dim=n_regression_weights, hidden_dim=0, out_dim=1, n_hidden=0
+            in_dim=n_regression_weights, hidden_dim=n_regression_weights, out_dim=1, n_hidden=n_regression_layers
         )
         self.regression_untreated = make_sequential(
-            in_dim=n_regression_weights, hidden_dim=0, out_dim=1, n_hidden=0
+            in_dim=n_regression_weights, hidden_dim=n_regression_weights, out_dim=1, n_hidden=n_regression_layers
         )
 
     def get_riesz_representer(self, data):

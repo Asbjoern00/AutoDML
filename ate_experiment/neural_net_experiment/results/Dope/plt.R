@@ -1,12 +1,12 @@
 library(tidyverse)
 library(patchwork)
 #res_files <- list.files("ate_experiment/neural_net_experiment/results/Dope/",pattern = "*.csv", full.names = TRUE)
-res_files <- list.files("ate_experiment/neural_net_experiment/results/Dope/",pattern = "*_2.csv", full.names = TRUE)
+res_files <- list.files("ate_experiment/neural_net_experiment/results/Dope/",pattern = "*_3.csv", full.names = TRUE)
 res_files <- c(res_files, list.files("ate_experiment/neural_net_experiment/results/Dope/",pattern = "sep_nets.csv", full.names = TRUE))
 
 results <- tibble()
 for(file in res_files){
-  res <-  read_csv(file) %>% slice_head(n=800)
+  res <-  read_csv(file)
   if(stringr::str_detect(file, "outcome")){
     res$Informed <- "Outcome"
   }else if(stringr::str_detect(file, "riesz")){
@@ -16,13 +16,13 @@ for(file in res_files){
     res$Informed <- "Separate"
     res <- res
   }
-  res$index <- 1:800
+  res$index <- 1:1000
   results <- bind_rows(results,res)
   results <- results %>% mutate(riesz_coverage = riesz_lower <= truth & truth <= riesz_upper) 
 }
 
 agg_res <- results  %>% group_by(Informed) %>% 
-  summarise(bias = mean(truth-riesz_estimate), variance = mean((riesz_estimate-mean(riesz_estimate))^2), rmse = sqrt(mean((truth-riesz_estimate)^2)), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
+  summarise(bias = mean(truth-riesz_estimate), variance = var(riesz_estimate), rmse = sqrt(mean((truth-riesz_estimate)^2)), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
             est_as_var = mean(riesz_variance), avg_len = mean(riesz_upper-riesz_lower))
 
 
@@ -43,7 +43,7 @@ for(file in res_files){
   res_weights <- bind_rows(res,res_weights)
 }
 
-agg_res_w <- res_weights %>% filter(rr_weight < 16) %>% group_by(rr_weight,TMLE) %>%
+agg_res_w <- res_weights %>% filter(rr_weight < 2) %>% group_by(rr_weight,TMLE) %>%
   summarise(bias = mean(truth-riesz_estimate), variance = mean((riesz_estimate-mean(riesz_estimate))^2), rmse = sqrt(mean((truth-riesz_estimate)^2)), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
             est_as_var = mean(riesz_variance), avg_len = mean(riesz_upper-riesz_lower)) %>% 
   mutate(TMLE = case_when(TMLE == 1 ~ "RieszNet, TMLE weight 1",
