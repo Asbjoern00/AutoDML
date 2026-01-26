@@ -17,7 +17,7 @@ def run(n_riesz):
     rr_weights = 2.0 ** np.arange(-5, 0, step=1)
     tmle_weight = 0.0
 
-    for rr_weight in rr_weights[::-1]:
+    for rr_weight in rr_weights:
 
         if os.path.exists(
             f"ate_experiment/neural_net_experiment/results/woTMLE/rr_w_{rr_weight}_n_riesz_{n_riesz}.csv"

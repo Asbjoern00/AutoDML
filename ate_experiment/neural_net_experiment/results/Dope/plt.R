@@ -66,7 +66,9 @@ a <- agg_res_w %>% ggplot(aes(x = rr_weight, color = as.factor(TMLE), y = rmse))
   geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Riesz") %>% pull("rmse"),color = "Riesz Informed")) +
   geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Separate") %>% pull("rmse"),color = "Separate Neural Nets")) +
   labs(color = NULL) + 
-  theme_bw()
+  ylab("RMSE") + 
+  xlab("Riesz representer weight") + 
+  theme_bw() 
 
 b <- agg_res_w %>% ggplot(aes(x = rr_weight, color = TMLE, y = bias)) + 
   geom_point() + 

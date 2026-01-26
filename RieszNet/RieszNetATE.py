@@ -64,7 +64,9 @@ class ATERieszNetwork(nn.Module):
 
     def get_riesz_representer(self, data):
         z = self._forward_shared(data)
-        return self.rr_head(z)
+        rr = self.rr_head(z)
+        rr = torch.clip(rr, -100, 100)
+        return rr
 
     def get_plugin_estimate(self, data):
         functional = self.get_functional(data)
@@ -95,7 +97,7 @@ class ATERieszNetwork(nn.Module):
         z = self._forward_shared(data)
 
         # Heads
-        rr_output = self.rr_head(z)
+        rr_output = self.get_riesz_representer(data)
         y_treated = self.treated_head(z)
         y_untreated = self.untreated_head(z)
 
