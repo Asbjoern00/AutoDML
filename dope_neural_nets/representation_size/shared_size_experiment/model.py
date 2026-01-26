@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 class ModelWrapper:
-    def __init__(self, in_, hidden_size, n_shared, n_not_shared, type_="shared_base"):
-        self.model = Model(in_, hidden_size, type_, n_shared, n_not_shared)
+    def __init__(self, in_, hidden_size, n_shared, n_not_shared, shared_size, type_="shared_base"):
+        self.model = Model(in_, hidden_size, type_, n_shared, n_not_shared, shared_size)
 
     def get_estimate_components(self, data: Dataset):
         self.model.eval()
@@ -18,7 +18,7 @@ class ModelWrapper:
         riesz = self.model.predict_riesz(data.net_input)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
-    def train_as_riesz_net(self, data: Dataset, rr_w=1, tmle_w=0, mse_w=1, lr=1e-3, wd=1e-3, patience=30):
+    def train_as_riesz_net(self, data: Dataset, rr_w=1, tmle_w=0, mse_w=1, lr=1e-3, wd=1e-3):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = True
@@ -34,21 +34,66 @@ class ModelWrapper:
             TensorDataset(
                 train_data.net_input, train_treated.net_input, train_control.net_input, train_data.outcomes_tensor
             ),
-            batch_size=64,
+            batch_size=32,
             shuffle=True,
         )
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=lr)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer,
-            mode="min",
-            factor=0.5,
-            patience=10,
-            threshold=1e-3,
-            threshold_mode="rel",
-            cooldown=2,
-            min_lr=1e-6,
-        )
+
         best = 1e6
+        patience = 20
+        if isinstance(lr, list):
+            for lr_ in lr:
+                best = self._train_as_riesz_net(
+                    loader,
+                    best,
+                    lr_,
+                    mse_w,
+                    outcome_criterion,
+                    patience,
+                    riesz_criterion,
+                    rr_w,
+                    tmle_criterion,
+                    tmle_w,
+                    val_control,
+                    val_data,
+                    val_treated,
+                    wd,
+                )
+        else:
+            self._train_as_riesz_net(
+                loader,
+                best,
+                lr,
+                mse_w,
+                outcome_criterion,
+                patience,
+                riesz_criterion,
+                rr_w,
+                tmle_criterion,
+                tmle_w,
+                val_control,
+                val_data,
+                val_treated,
+                wd,
+            )
+
+    def _train_as_riesz_net(
+        self,
+        loader,
+        best,
+        lr,
+        mse_w,
+        outcome_criterion,
+        patience,
+        riesz_criterion,
+        rr_w,
+        tmle_criterion,
+        tmle_w,
+        val_control,
+        val_data,
+        val_treated,
+        wd,
+    ):
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=lr)
         counter = 0
         best_state = copy.deepcopy(self.model.state_dict())
         for epoch in range(1000):
@@ -78,16 +123,16 @@ class ModelWrapper:
                 base_predictions = self.model.predict_without_correction(val_data.net_input)
                 outcome_loss = outcome_criterion(base_predictions, val_data.outcomes_tensor)
                 tmle_w_loss = tmle_criterion(self.model.predict_outcome(val_data.net_input), val_data.outcomes_tensor)
-                test_loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w
-                scheduler.step(test_loss)
-            if test_loss.item() < best:
-                best = test_loss.item()
+                test_loss = (riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w).item()
+            if test_loss < best:
+                best = test_loss
                 counter = 0
                 best_state = copy.deepcopy(self.model.state_dict())
             else:
                 counter += 1
             if counter >= patience:
                 break
+        print(outcome_loss, riesz_loss, test_loss)
         self.model.load_state_dict(best_state)
         return best
 
@@ -211,27 +256,30 @@ class ModelWrapper:
 
 
 class Model(nn.Module):
-    def __init__(self, in_, hidden_size, type_, n_shared, n_not_shared):
+    def __init__(self, in_, hidden_size, type_, n_shared, n_not_shared, shared_size):
         super(Model, self).__init__()
         if type_ == "shared_base":
-            shared_layers = [HiddenLayer(in_, hidden_size)]
-            for i in range(n_shared - 1):
-                shared_layers.append(HiddenLayer(hidden_size, hidden_size))
+            shared_layers = [
+                HiddenLayer(in_, hidden_size),
+                HiddenLayer(hidden_size, hidden_size),
+                HiddenLayer(hidden_size, shared_size),
+            ]
             shared_layers = nn.Sequential(*shared_layers)
             self.outcome_base = shared_layers
             self.riesz_base = shared_layers
         elif type_ == "separate_nets":
             outcome_base = [HiddenLayer(in_, hidden_size)]
-            for i in range(n_shared - 1):
+            for i in range(n_shared - 2):
                 outcome_base.append(HiddenLayer(hidden_size, hidden_size))
             self.outcome_base = nn.Sequential(*outcome_base)
-            riesz_base = [HiddenLayer(in_, hidden_size)]
-            for i in range(n_shared - 1):
+            riesz_base = []
+            riesz_base.append(HiddenLayer(in_, hidden_size))
+            for i in range(n_shared - 2):
                 riesz_base.append(HiddenLayer(hidden_size, hidden_size))
             self.riesz_base = nn.Sequential(*riesz_base)
 
-        self.outcome_layers = BiHead(hidden_size, hidden_size, n_not_shared)
-        self.riesz_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
+        self.outcome_layers = BiHead(shared_size, hidden_size, n_not_shared)
+        self.riesz_layers = Head(shared_size + 1, hidden_size, n_not_shared)
         self.epsilon = torch.nn.Parameter(torch.tensor(0.0))
 
     def predict_outcome(self, x):
@@ -258,16 +306,21 @@ class RieszLoss(nn.Module):
 class BiHead(nn.Module):
     def __init__(self, in_, hidden_size, n_hidden):
         super(BiHead, self).__init__()
-        t = [HiddenLayer(in_, hidden_size)]
-        for i in range(n_hidden - 1):
-            t.append(HiddenLayer(hidden_size, hidden_size))
-        t.append(nn.Linear(hidden_size, 1))
-        self.t_layers = nn.Sequential(*t)
-        c = [HiddenLayer(in_, hidden_size)]
-        for i in range(n_hidden - 1):
-            c.append(HiddenLayer(hidden_size, hidden_size))
-        c.append(nn.Linear(hidden_size, 1))
-        self.c_layers = nn.Sequential(*c)
+        if n_hidden > 0:
+            t = [HiddenLayer(in_, hidden_size)]
+            for i in range(n_hidden - 1):
+                t.append(HiddenLayer(hidden_size, hidden_size))
+            t.append(nn.Linear(hidden_size, 1))
+            self.t_layers = nn.Sequential(*t)
+
+            c = [HiddenLayer(in_, hidden_size)]
+            for i in range(n_hidden - 1):
+                c.append(HiddenLayer(hidden_size, hidden_size))
+            c.append(nn.Linear(hidden_size, 1))
+            self.c_layers = nn.Sequential(*c)
+        else:
+            self.t_layers = nn.Linear(in_, 1)
+            self.c_layers = nn.Linear(in_, 1)
 
     def forward(self, x, treat):
         xt = self.t_layers(x)
@@ -278,11 +331,14 @@ class BiHead(nn.Module):
 class Head(nn.Module):
     def __init__(self, in_, hidden_size, n_hidden):
         super(Head, self).__init__()
-        layers = [HiddenLayer(in_, hidden_size)]
-        for i in range(n_hidden - 1):
-            layers.append(HiddenLayer(hidden_size, hidden_size))
-        layers.append(nn.Linear(hidden_size, 1))
-        self.layers = nn.Sequential(*layers)
+        if n_hidden > 0:
+            layers = [HiddenLayer(in_, hidden_size)]
+            for i in range(n_hidden - 1):
+                layers.append(HiddenLayer(hidden_size, hidden_size))
+            layers.append(nn.Linear(hidden_size, 1))
+            self.layers = nn.Sequential(*layers)
+        else:
+            self.layers = nn.Linear(in_, 1)
 
     def forward(self, x, treat):
         x = torch.cat((x, treat), dim=1)
@@ -295,7 +351,6 @@ class HiddenLayer(nn.Module):
         self.layers = nn.Sequential(
             nn.Linear(in_, out_),
             nn.ELU(),
-            # nn.Dropout(0.2),
         )
 
     def forward(self, x):
