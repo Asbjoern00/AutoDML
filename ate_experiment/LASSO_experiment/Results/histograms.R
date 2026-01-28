@@ -1,7 +1,7 @@
 library(tidyverse)
 library(patchwork)
 n <- 1000
-no_cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/no_cross_fit_results.csv") %>% head(230)
+no_cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/no_cross_fit_results.csv")
 cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/cross_fit_results.csv")
 
 

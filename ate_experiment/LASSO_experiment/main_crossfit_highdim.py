@@ -1,9 +1,8 @@
 import numpy as np
 from ate_experiment.dataset_highdim import DatasetHighDim
-from LASSO.LassoClass import Lasso,OutcomeAdaptedLasso
+from LASSO.LassoClass import Lasso
 from LASSO.OutcomeLASSO import OutcomeLASSO
 from LASSO.RieszLasso import RieszLasso, PropensityLasso
-import os.path
 from average_treatment_effect.Functional.ATEFunctional import ate_functional
 
 
@@ -19,23 +18,18 @@ est_plugin = np.zeros(m)
 
 est_riesz = np.zeros(m)
 est_propensity = np.zeros(m)
-est_riesz_oa = np.zeros(m)
 
 var_riesz = np.zeros(m)
 var_propensity = np.zeros(m)
-var_riesz_oa = np.zeros(m)
 
 covered_riesz = np.zeros(m)
 covered_propensity = np.zeros(m)
-covered_riesz_oa = np.zeros(m)
 
 upper_ci_riesz = np.zeros(m)
 upper_ci_propensity = np.zeros(m)
-upper_ci_riesz_oa = np.zeros(m)
 
 lower_ci_riesz = np.zeros(m)
 lower_ci_propensity = np.zeros(m)
-lower_ci_riesz_oa = np.zeros(m)
 
 
 n_already_run = 0
@@ -62,21 +56,17 @@ for i in range(m):
         outcome_lasso = OutcomeLASSO(ate_functional)
         lassoR = Lasso(riesz_lasso, outcome_lasso)
         lassoP = Lasso(propensity_lasso,outcome_lasso)
-        lassoRoa = OutcomeAdaptedLasso(riesz_lasso_oa, outcome_lasso)
 
         for j in range(n_folds):
             eval_data, train_data = data.get_fit_and_train_folds(folds, j)
             n_eval_data = eval_data.treatments.shape[0]
             lassoR.fit(train_data)
             lassoP.fit(train_data,fit_outcome_model=False)
-            lassoRoa.fit(train_data, fit_outcome_model=False)
 
             functional_riesz[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_functional(eval_data)
             functional_propensity[n_evaluated : n_evaluated + n_eval_data] = lassoP.get_functional(eval_data)
-            functional_riesz_oa[n_evaluated : n_evaluated + n_eval_data] = lassoRoa.get_functional(eval_data)
 
             correction_riesz[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_correction(eval_data)
-            correction_riesz_oa[n_evaluated : n_evaluated + n_eval_data] = lassoRoa.get_correction(eval_data)
             correction_propensity[n_evaluated : n_evaluated + n_eval_data] = lassoP.get_correction(eval_data)
 
             n_evaluated = n_evaluated + n_eval_data
@@ -93,14 +83,8 @@ for i in range(m):
         lower_ci_propensity[i] = est_propensity[i] - 1.96 * np.sqrt(var_propensity[i] / n)
         upper_ci_propensity[i] = est_propensity[i] + 1.96 * np.sqrt(var_propensity[i] / n)
 
-        est_riesz_oa[i] = np.mean(est_plugin[i] + correction_riesz_oa)
-        var_riesz_oa[i] = np.mean((functional_riesz_oa - est_riesz_oa[i] + correction_riesz_oa) ** 2)
-        lower_ci_riesz_oa[i] = est_riesz_oa[i] - 1.96 * np.sqrt(var_riesz_oa[i] / n)
-        upper_ci_riesz_oa[i] = est_riesz_oa[i] + 1.96 * np.sqrt(var_riesz_oa[i] / n)
-
     covered_propensity[i] = (lower_ci_propensity[i] < truth) * (truth < upper_ci_propensity[i])
     covered_riesz[i] = (lower_ci_riesz[i] < truth) * (truth < upper_ci_riesz[i])
-    covered_riesz_oa[i] = (lower_ci_riesz_oa[i] < truth) * (truth < upper_ci_riesz_oa[i])
 
     print(f"Plugin MSE : {np.mean((est_plugin[:i+1]-truth)**2)}")
 
@@ -108,9 +92,6 @@ for i in range(m):
 
     print(
         f"Propensity MSE : {np.mean((est_propensity[:i+1]-truth)**2)}, coverage = {np.mean(covered_propensity[:i+1])}"
-    )
-    print(
-        f"Riesz OA MSE : {np.mean((est_riesz_oa[:i+1]-truth)**2)}, coverage = {np.mean(covered_riesz_oa[:i+1])}"
     )
     print(i)
 
