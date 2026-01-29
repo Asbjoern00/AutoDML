@@ -8,8 +8,8 @@ no_cross_fit_results = no_cross_fit_results %>% mutate(riesz_coverage = riesz_lo
 cross_fit_results = cross_fit_results %>% mutate(index = 1:1000, propensity_coverage = propensity_lower <= truth & truth <= propensity_upper)
 cross_fit_results = cross_fit_results %>% mutate(riesz_coverage = riesz_lower <= truth & truth <= riesz_upper)
 
-ymax = 1.4
-ymin = 0.6
+ymax = 1.8
+ymin = 0.4
 
 
 a = ggplot(no_cross_fit_results[1:100,])+
@@ -88,7 +88,7 @@ d = ggplot(cross_fit_results[1:100,])+
            label = paste0("Coverage: ", round(mean(cross_fit_results$riesz_coverage),5)), 
            hjust = 1.1, vjust = 2, 
            size = 4)+
-  ylim(0, 2)+
+  ylim(ymin, ymax)+
   ggtitle('Direct Riesz representer & Cross-fitting')
 
 

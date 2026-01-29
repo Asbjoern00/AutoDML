@@ -4,6 +4,11 @@ n <- 1000
 no_cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/no_cross_fit_results.csv")
 cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/cross_fit_results.csv")
 
+no_cf_bias <- mean(no_cross_fit_results$plugin_estimate-no_cross_fit_results$truth)
+cf_bias <- mean(cross_fit_results$plugin_estimate-no_cross_fit_results$truth)
+
+no_cf_rmse <- sqrt(mean((no_cross_fit_results$plugin_estimate-no_cross_fit_results$truth)^2))
+cf_rmse <- sqrt(mean((cross_fit_results$plugin_estimate-no_cross_fit_results$truth)^2))
 
 
 a_rmse = mean((no_cross_fit_results$propensity_estimate - no_cross_fit_results$truth)^2)^(1/2)
@@ -26,12 +31,22 @@ a = ggplot(no_cross_fit_results)+
   annotate("text", 
            x = Inf, y = Inf, 
            label = paste0("RMSE: ", round(a_rmse,5)), 
-           hjust = 1.1, vjust = 2, 
+           hjust = 1.1, vjust = 2.1, 
            size = 4)+
   annotate("text", 
            x = Inf, y = Inf, 
            label = paste0("Bias: ", round(a_bias,5)), 
-           hjust = 1.1, vjust = 4, 
+           hjust = 1.1, vjust = 4.2, 
+           size = 4)+
+  annotate("text", 
+           x = Inf, y = Inf, 
+           label = paste0("Plug-in Bias: ", round(no_cf_bias,5)), 
+           hjust = 1.1, vjust = 6.3, 
+           size = 4)+
+  annotate("text", 
+           x = Inf, y = Inf, 
+           label = paste0("Plug-in RMSE: ", round(no_cf_rmse,5)), 
+           hjust = 1.1, vjust = 8.4, 
            size = 4)+
   theme_classic()
 
@@ -55,12 +70,22 @@ b = ggplot(no_cross_fit_results)+
   annotate("text", 
            x = Inf, y = Inf, 
            label = paste0("RMSE: ", round(b_rmse,5)), 
-           hjust = 1.1, vjust = 2, 
+           hjust = 1.1, vjust = 2.1, 
            size = 4)+
   annotate("text", 
            x = Inf, y = Inf, 
            label = paste0("Bias: ", round(b_bias,5)), 
-           hjust = 1.1, vjust = 4, 
+           hjust = 1.1, vjust = 4.2, 
+           size = 4)+
+  annotate("text", 
+           x = Inf, y = Inf, 
+           label = paste0("Plug-in Bias: ", round(no_cf_bias,5)), 
+           hjust = 1.1, vjust = 6.3, 
+           size = 4)+
+  annotate("text", 
+           x = Inf, y = Inf, 
+           label = paste0("Plug-in RMSE: ", round(no_cf_rmse,5)), 
+           hjust = 1.1, vjust = 8.4, 
            size = 4)+
   theme_classic()
 
@@ -84,12 +109,22 @@ c = ggplot(cross_fit_results)+
   annotate("text", 
            x = Inf, y = Inf, 
            label = paste0("RMSE: ", round(c_rmse,5)), 
-           hjust = 1.1, vjust = 2, 
+           hjust = 1.1, vjust = 2.1, 
            size = 4)+
   annotate("text", 
            x = Inf, y = Inf, 
            label = paste0("Bias: ", round(c_bias,5)), 
-           hjust = 1.1, vjust = 4, 
+           hjust = 1.1, vjust = 4.2, 
+           size = 4)+
+  annotate("text", 
+           x = Inf, y = Inf, 
+           label = paste0("Plug-in Bias: ", round(cf_bias,5)), 
+           hjust = 1.1, vjust = 6.3, 
+           size = 4)+
+  annotate("text", 
+           x = Inf, y = Inf, 
+           label = paste0("Plug-in RMSE: ", round(cf_rmse,5)), 
+           hjust = 1.1, vjust = 8.4, 
            size = 4)+
   theme_classic()
 
@@ -113,13 +148,35 @@ d = ggplot(cross_fit_results)+
   annotate("text", 
            x = Inf, y = Inf, 
            label = paste0("RMSE: ", round(d_rmse,5)), 
-           hjust = 1.1, vjust = 2, 
+           hjust = 1.1, vjust = 2.1, 
            size = 4)+
   annotate("text", 
            x = Inf, y = Inf, 
            label = paste0("Bias: ", round(d_bias,5)), 
-           hjust = 1.1, vjust = 4, 
+           hjust = 1.1, vjust = 4.2, 
+           size = 4)+
+  annotate("text", 
+           x = Inf, y = Inf, 
+           label = paste0("Plug-in Bias: ", round(cf_bias,5)), 
+           hjust = 1.1, vjust = 6.3, 
+           size = 4)+
+  annotate("text", 
+           x = Inf, y = Inf, 
+           label = paste0("Plug-in RMSE: ", round(cf_rmse,5)), 
+           hjust = 1.1, vjust = 8.4, 
            size = 4)+
   theme_classic()
 
 a+b+c+d
+
+
+
+
+#e_rmse = mean((no_cross_fit_results$plugin_estimate - no_cross_fit_results$truth)^2)^(1/2)
+#e_bias = mean(no_cross_fit_results$plugin_estimate-no_cross_fit_results$truth)
+
+
+#e_rmse = mean((cross_fit_results$plugin_estimate - no_cross_fit_results$truth)^2)^(1/2)
+#e_bias = mean(cross_fit_results$plugin_estimate-no_cross_fit_results$truth)
+
+
