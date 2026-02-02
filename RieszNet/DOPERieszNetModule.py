@@ -11,7 +11,7 @@ class DOPERieszNetModule:
         self.regression_loss = torch.nn.MSELoss()
         self.rr_loss = RieszLoss()
 
-    def fit(self, data, informed = "regression"):
+    def fit(self, data, informed="regression"):
 
         train_data, val_data = data.test_train_split(train_proportion=self.regression_optimizer.early_stopping["proportion"])
         if informed == "regression":
@@ -52,17 +52,17 @@ class DOPERieszNetModule:
         best_state = None
 
         for epoch in range(self.regression_optimizer.epochs):
-            if epoch == self.rr_optimizer.epochs-1:
+            if epoch == self.rr_optimizer.epochs - 1:
                 print(f"No early stopping regression, MSE Loss {best_val_loss:.4f}")
             self.regression_optimizer.optim.zero_grad()
-            _, _, outcome_prediction = self.network(train_data)
+            outcome_prediction = self.network._evaluate_regression(train_data)
 
             loss = self.regression_loss(outcome_prediction, train_data.outcomes_tensor)
             loss.backward()
             self.regression_optimizer.optim.step()
 
             with torch.no_grad():
-                _, _, outcome_prediction_val = self.network(val_data)
+                outcome_prediction_val = self.network._evaluate_regression(val_data)
 
                 val_loss = self.regression_loss(val_data.outcomes_tensor, outcome_prediction_val).item()
 
