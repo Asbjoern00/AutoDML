@@ -28,9 +28,9 @@ def run(n_shared):
         np.random.seed(i)
         torch.manual_seed(i)
 
-        data = pd.read_csv(f"AveragePartialDerivative/BHP_data/redrawn_datasets/data_{i}.csv")
+        data = pd.read_csv(f"AveragePartialDerivative/BHP_data/redrawn_datasets/simple_f_with_linear_confounders/data_{i}.csv")
 
-        truths[i] = data["Truth"].iloc[0]
+        truths[i] = data["Truth"].mean()
 
         Y = np.array(data["Y"]).reshape(-1, 1)
         T = np.array(data["T"]).reshape(-1, 1)
@@ -71,6 +71,7 @@ def run(n_shared):
         upper_ci_riesz[i] = est_riesz[i] + 1.96 * np.sqrt(var_riesz[i] / n)
         covered_riesz[i] = (lower_ci_riesz[i] < truths[i]) * (truths[i] < upper_ci_riesz[i])
 
+        print(f"Truth: {truths[i]}")
         print(f"plug-in: {est_plugin_riesz[i]}")
         print(f"corrected: {est_riesz[i]}")
         print(f"Outcome informed, n_shared = {n_shared}")
@@ -80,17 +81,17 @@ def run(n_shared):
         )
         print(i)
 
-    headers = ["truth", "plugin_estimate_riesz", "riesz_estimate", "riesz_variance", "riesz_lower", "riesz_upper"]
+        headers = ["truth", "plugin_estimate_riesz", "riesz_estimate", "riesz_variance", "riesz_lower", "riesz_upper"]
 
-    results = np.array([truths, est_plugin_riesz, est_riesz, var_riesz, lower_ci_riesz, upper_ci_riesz]).T
+        results = np.array([truths, est_plugin_riesz, est_riesz, var_riesz, lower_ci_riesz, upper_ci_riesz]).T
 
-    np.savetxt(
-        f"AveragePartialDerivativeFunctional/results/avg_derivative_dope_{n_shared}.csv",
-        results,
-        delimiter=",",
-        header=",".join(headers),
-        comments="",
-    )
+        np.savetxt(
+            f"AveragePartialDerivative/results/avg_derivative_dope_{n_shared}_simple.csv",
+            results,
+            delimiter=",",
+            header=",".join(headers),
+            comments="",
+        )
 
 
 if __name__ == "__main__":

@@ -82,7 +82,6 @@ class DOPERieszNetModule:
         best_val_loss = float("inf")
         patience_counter = 0
         best_state = None
-
         for epoch in range(self.rr_optimizer.epochs):
             if epoch == self.rr_optimizer.epochs-1:
                 print(f"No early stopping Riesz")
