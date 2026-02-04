@@ -1,8 +1,8 @@
 import numpy as np
 from AveragePartialDerivative.Dataset import Dataset
-from RieszNet.DOPERieszNetModule import DOPERieszNetModule,DOPERieszNetModuleMinibatched
+from RieszNet.DOPERieszNetModule import DOPERieszNetModule
 from RieszNet.Optimizer import OptimizerParams
-from RieszNet.DOPERieszNetDerivative import DOPEDerivativeRieszNetwork,DOPEPolynomialDerivativeRieszNetwork
+from RieszNet.DOPERieszNetDerivative import DOPEDerivativeRieszNetwork
 from AveragePartialDerivative.AveragePartialDerivativeFunctional import avg_der_fuctional
 import torch
 import pandas as pd
