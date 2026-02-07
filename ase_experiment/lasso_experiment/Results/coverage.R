@@ -2,19 +2,19 @@ library(tidyverse)
 library(patchwork)
 no_cross_fit_results <- read_csv("ase_experiment/lasso_experiment/Results/no_cross_fit_results.csv")
 cross_fit_results <- read_csv("ase_experiment/lasso_experiment/Results/cross_fit_results.csv")
-no_cross_fit_results = no_cross_fit_results %>% sample_frac() %>% mutate(index = 1:1000, indirect_coverage = indirect_lower <= truth & truth <= indirect_upper)
+no_cross_fit_results = no_cross_fit_results %>% mutate(index = 1:1000, indirect_coverage = propensity_lower <= truth & truth <= propensity_upper)
 no_cross_fit_results = no_cross_fit_results %>%  mutate(riesz_coverage = riesz_lower <= truth & truth <= riesz_upper)
 
 cross_fit_results = cross_fit_results %>% sample_frac() %>% mutate(index = 1:1000, indirect_coverage = indirect_lower <= truth & truth <= indirect_upper)
 cross_fit_results = cross_fit_results %>% mutate(riesz_coverage = riesz_lower <= truth & truth <= riesz_upper)
 
-ymax = 1.2
-ymin = 0.7
+ymax = 1.5
+ymin = 0.5
 
 
 a = ggplot(no_cross_fit_results[1:100,])+
-  geom_segment(aes(x=index, y=indirect_lower,xend=index, yend=indirect_upper, color = as.factor(indirect_coverage)))+
-  geom_point(aes(x=index, y=indirect_estimate))+
+  geom_segment(aes(x=index, y=propensity_lower,xend=index, yend=propensity_upper, color = as.factor(indirect_coverage)))+
+  geom_point(aes(x=index, y=propensity_estimate))+
   theme_classic()+
   scale_color_manual(                      
     values = c('FALSE' = "red", "TRUE" = "black"),

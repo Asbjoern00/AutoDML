@@ -1,7 +1,7 @@
 library(tidyverse)
 library(patchwork)
-no_cross_fit_results <- read_csv("ase_experiment/lasso_experiment/Results/no_cross_fit_results.csv")
-cross_fit_results <- read_csv("ase_experiment/lasso_experiment/Results/cross_fit_results.csv")
+no_cross_fit_results <- read_csv("ase_experiment/lasso_experiment/Results/no_cross_fit_results.csv") %>% filter(riesz_variance > 0)
+cross_fit_results <- read_csv("ase_experiment/lasso_experiment/Results/cross_fit_results.csv") %>% filter(riesz_variance > 0)
 
 
 no_cf_bias <- mean(no_cross_fit_results$plugin_estimate-no_cross_fit_results$truth)
@@ -11,11 +11,13 @@ no_cf_rmse <- sqrt(mean((no_cross_fit_results$plugin_estimate-no_cross_fit_resul
 cf_rmse <- sqrt(mean((cross_fit_results$plugin_estimate-no_cross_fit_results$truth)^2))
 
 
+n <- 500
 
-a_rmse = mean((no_cross_fit_results$indirect_estimate - no_cross_fit_results$truth)^2)^(1/2)
-a_bias = mean(no_cross_fit_results$indirect_estimate-no_cross_fit_results$truth)
+
+a_rmse = mean((no_cross_fit_results$propensity_estimate - no_cross_fit_results$truth)^2)^(1/2)
+a_bias = mean(no_cross_fit_results$propensity_estimate-no_cross_fit_results$truth)
 a = ggplot(no_cross_fit_results)+
-  geom_histogram(aes(x=(indirect_estimate-truth)/sqrt(indirect_variance/1000), y=after_stat(density)), color='white')+
+  geom_histogram(aes(x=(propensity_estimate-truth)/sqrt(propensity_variance/n), y=after_stat(density)), color='white')+
   geom_function(fun=function(x) dnorm(x)) +
   geom_vline(xintercept=0, color='red', size=1) +
   xlab(
@@ -54,7 +56,7 @@ a = ggplot(no_cross_fit_results)+
 b_rmse = mean((no_cross_fit_results$riesz_estimate - no_cross_fit_results$truth)^2)^(1/2)
 b_bias = mean(no_cross_fit_results$riesz_estimate - no_cross_fit_results$truth)
 b = ggplot(no_cross_fit_results)+
-  geom_histogram(aes(x=(riesz_estimate-truth)/sqrt(riesz_variance/1000), y=after_stat(density)), color='white')+
+  geom_histogram(aes(x=(riesz_estimate-truth)/sqrt(riesz_variance/n), y=after_stat(density)), color='white')+
   geom_function(fun=function(x) dnorm(x)) +
   geom_vline(xintercept=0, color='red', size=1) +
   xlab(
@@ -93,7 +95,7 @@ b = ggplot(no_cross_fit_results)+
 c_rmse = mean((cross_fit_results$indirect_estimate - cross_fit_results$truth)^2)^(1/2)
 c_bias = mean(cross_fit_results$indirect_estimate - cross_fit_results$truth)
 c = ggplot(cross_fit_results)+
-  geom_histogram(aes(x=(indirect_estimate-truth)/sqrt(indirect_variance/1000), y=after_stat(density)), color='white')+
+  geom_histogram(aes(x=(indirect_estimate-truth)/sqrt(indirect_variance/n), y=after_stat(density)), color='white')+
   geom_function(fun=function(x) dnorm(x)) +
   geom_vline(xintercept=0, color='red', size=1) +
   xlab(
@@ -132,7 +134,7 @@ c = ggplot(cross_fit_results)+
 d_rmse = mean((cross_fit_results$riesz_estimate - cross_fit_results$truth)^2)^(1/2)
 d_bias = mean(cross_fit_results$riesz_estimate - cross_fit_results$truth)
 d = ggplot(cross_fit_results)+
-  geom_histogram(aes(x=(riesz_estimate-truth)/sqrt(riesz_variance/1000), y=after_stat(density)), color='white')+
+  geom_histogram(aes(x=(riesz_estimate-truth)/sqrt(riesz_variance/n), y=after_stat(density)), color='white')+
   geom_function(fun=function(x) dnorm(x)) +
   geom_vline(xintercept=0, color='red', size=1) +
   xlab(

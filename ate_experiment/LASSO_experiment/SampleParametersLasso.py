@@ -2,7 +2,7 @@ import numpy as np
 from ate_experiment.dataset_highdim import DatasetHighDim
 
 def sample_parameters_lasso(
-    total_covariates=1200,
+    total_covariates=200,
     n_active_regression=15,
     n_active_propensity=15,
     n_active_intersection=5,
@@ -34,7 +34,7 @@ def sample_parameters_lasso(
     propensity_covariates = np.concatenate([common_covariates, propensity_only])
 
     regression_coefficients = np.zeros(total_covariates + 1)
-    regression_coefficients[0] = 1.0  # intercept
+    regression_coefficients[0] = 1.0  # treatment effect.
     regression_coefficients[regression_covariates + 1] = np.random.uniform(
         -3, 3, size=n_active_regression
     )

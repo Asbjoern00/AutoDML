@@ -1,8 +1,8 @@
 library(tidyverse)
 library(patchwork)
-n <- 1000
-no_cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/no_cross_fit_results.csv")
-cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/cross_fit_results.csv")
+n <- 500
+no_cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/no_cross_fit_results.csv") %>% filter(riesz_variance > 0)
+cross_fit_results <- read_csv("ate_experiment/LASSO_experiment/Results/cross_fit_results.csv")%>% filter(riesz_variance > 0)
 
 no_cf_bias <- mean(no_cross_fit_results$plugin_estimate-no_cross_fit_results$truth)
 cf_bias <- mean(cross_fit_results$plugin_estimate-no_cross_fit_results$truth)
