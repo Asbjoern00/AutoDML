@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, TensorDataset
 class ModelWrapper:
     def __init__(self, in_, hidden_size, n_shared, n_not_shared, type_="shared_base"):
         self.model = Model(in_, hidden_size, type_, n_shared, n_not_shared)
+        self.outcome_criterion = nn.MSELoss()
 
     def get_estimate_components(self, data: Dataset):
         self.model.eval()
@@ -28,7 +29,6 @@ class ModelWrapper:
             for param in self.model.outcome_base.parameters():
                 param.requires_grad = True
         train_data, val_data = data.test_train_split(0.8)
-        criterion = nn.MSELoss()
         loader = DataLoader(
             TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=64, shuffle=True
         )
@@ -54,15 +54,14 @@ class ModelWrapper:
             self.model.train()
             for x, y in loader:
                 optimizer.zero_grad()
-                predictions = self.model.predict_outcome(x)
+                mse_loss = self._get_mse_loss(x, y)
                 l1_loss = l1_penalty * self.model.outcome_base.lasso_layer.weight.abs().sum()
-                loss = criterion(predictions, y) + l1_loss
+                loss = mse_loss + l1_loss
                 loss.backward()
                 optimizer.step()
             self.model.eval()
             with torch.no_grad():
-                predictions = self.model.predict_outcome(val_data.net_input)
-                test_loss = criterion(predictions, val_data.outcomes_tensor)
+                test_loss = self._get_mse_loss(data.net_input, data.outcomes_tensor)
                 scheduler.step(test_loss)
             if test_loss.item() < best:
                 best = test_loss.item()
@@ -74,6 +73,11 @@ class ModelWrapper:
                 break
         self.model.load_state_dict(best_state)
         return best
+
+    def _get_mse_loss(self, x, y):
+        predictions = self.model.predict_outcome(x)
+        mse_loss = self.outcome_criterion(predictions, y)
+        return mse_loss
 
     def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=30):
         self.model.train()
@@ -146,7 +150,7 @@ class Model(nn.Module):
         self.outcome_base = shared_layers
         self.riesz_base = shared_layers
         self.outcome_layers = BiHead(hidden_size, hidden_size, n_not_shared)
-        self.riesz_layers = BiHead(hidden_size, hidden_size, n_not_shared)
+        self.riesz_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
 
     def predict_outcome(self, x):
         treat = x[:, 0].reshape(-1, 1)
