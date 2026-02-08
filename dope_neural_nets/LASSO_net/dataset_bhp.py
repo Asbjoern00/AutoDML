@@ -16,20 +16,20 @@ class Dataset:
 
     @classmethod
     def from_csv(cls, path):
-        data = np.loadtxt(path)
+        data = np.loadtxt(path, skiprows=1, delimiter=",")
+        data = data[:, 1:]
         return cls(
             raw_data=data,
-            treatment_column=0,
-            outcome_column=1,
-            covariate_columns=[i + 5 for i in range(25)],
+            treatment_column=1,
+            outcome_column=0,
         )
 
     def get_truth(self):
-        return np.mean(self.raw_data[:, 4] - self.raw_data[:, 3])
+        return -0.6
 
     @classmethod
     def load_chernozhukov_replication(cls, index):
-        path = "ihdp_average_treatment_effect/data/chernozhukov_ihdp_data/ihdp_" + str(index) + ".csv"
+        path = "AveragePartialDerivative/BHP_data/redrawn_datasets/data_" + str(index) + ".csv"
         return cls.from_csv(path)
 
     @classmethod
@@ -83,17 +83,6 @@ class Dataset:
         raw_data = np.concatenate([dataset.raw_data for dataset in datasets], axis=0)
         return cls(raw_data, datasets[0].outcome_column, datasets[0].treatment_column, datasets[0].covariate_columns)
 
-    @classmethod
-    def simulate_dataset(cls, number_of_samples, number_of_covariates):
-        assert number_of_covariates >= 8
-        covariates = np.random.uniform(low=0, high=1, size=(number_of_samples, number_of_covariates))
-        propensities = cls.propensity_score(covariates)
-        treatments = np.random.binomial(1, propensities, size=number_of_samples)
-        noise = np.random.normal(loc=0, scale=1, size=number_of_samples)
-        outcomes = cls.outcome_regression(covariates, treatments) + noise
-        data = np.concatenate([outcomes.reshape(-1, 1), treatments.reshape(-1, 1), covariates], axis=1)
-        return cls(raw_data=data, outcome_column=0, treatment_column=1)
-
     @property
     def outcomes(self):
         return self.raw_data[:, self.outcome_column]
@@ -124,13 +113,3 @@ class Dataset:
     @property
     def net_input(self):
         return torch.from_numpy(self.raw_data[:, [self.treatment_column] + self.covariate_columns].astype(np.float32))
-
-    def get_counterfactual_datasets(self):
-        treated_raw_data = self.raw_data.copy()
-        treated_raw_data[:, self.treatment_column] = np.ones_like(treated_raw_data[:, self.treatment_column])
-        control_raw_data = self.raw_data.copy()
-        control_raw_data[:, self.treatment_column] = np.zeros_like(control_raw_data[:, self.treatment_column])
-        return (
-            Dataset(treated_raw_data, self.outcome_column, self.treatment_column, self.covariate_columns),
-            Dataset(control_raw_data, self.outcome_column, self.treatment_column, self.covariate_columns),
-        )

@@ -166,8 +166,8 @@ class Model(nn.Module):
 
 
 class RieszLoss(nn.Module):
-    def forward(self, actual_riesz, treated_riesz, control_riesz):
-        return torch.mean(actual_riesz**2 - 2 * (treated_riesz - control_riesz))
+    def forward(self, grad, prediction):
+        return torch.mean(prediction**2 - 2 * grad)
 
 
 class SharedLayers(nn.Module):
