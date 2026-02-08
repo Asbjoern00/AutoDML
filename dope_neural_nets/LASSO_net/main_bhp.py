@@ -68,4 +68,4 @@ for i in range(1000):
 import pandas as pd
 
 estimates = pd.DataFrame(results)
-estimates.to_csv("dope_neural_nets/LASSO_net/lasso_net.csv", index=False)
+estimates.to_csv("dope_neural_nets/LASSO_net/lasso_net_bhp.csv", index=False)
