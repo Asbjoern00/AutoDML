@@ -7,7 +7,6 @@ np.random.seed(42)
 torch.manual_seed(42)
 
 penalties = [0, 1e-3, 1e-2, 1e-1, 1]
-penalties = [0]
 
 def run_experiment(data):
     estimate_components = []
