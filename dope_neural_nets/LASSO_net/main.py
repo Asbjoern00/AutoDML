@@ -6,17 +6,24 @@ from dope_neural_nets.dataset import Dataset
 np.random.seed(42)
 torch.manual_seed(42)
 
-penalties = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
+penalties = [0, 1e-3, 1e-2, 1e-1, 1]
+
 
 def run_experiment(data):
     estimate_components = []
+    train, test = data.test_train_split(0.8)
+    penalty = 0
     best = 1e6
-    for penalty in penalties:
+    for pen in penalties:
         model_wrapper_ = ModelWrapper(in_=25, hidden_size=100, n_shared=3, n_not_shared=2)
-        res = model_wrapper_.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=penalty)
+        model_wrapper_.train_outcome_head(train, train_shared_layers=True, lr=1e-3, l1_penalty=pen)
+        res = model_wrapper_._get_mse_loss(test.net_input, test.outcomes_tensor).item()
+        print(pen, res)
         if res < best:
             best = res
-            model_wrapper = model_wrapper_
+            penalty = pen
+    model_wrapper = ModelWrapper(in_=25, hidden_size=100, n_shared=3, n_not_shared=2)
+    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=penalty)
     model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3)
     estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
@@ -41,7 +48,7 @@ for i in range(1000):
     mae = sum(abs(residual) for residual in residuals) / len(residuals)
     bias = sum(residuals) / len(residuals)
     mean_est = sum(result["estimate"] for result in results) / len(results)
-    variance = sum((result["estimate"] - mean_est)**2 for result in results) / len(results)
+    variance = sum((result["estimate"] - mean_est) ** 2 for result in results) / len(results)
     coverage = sum(result["lower"] <= result["truth"] <= result["upper"] for result in results) / len(results)
     print(
         i,
@@ -59,3 +66,7 @@ for i in range(1000):
     )
 
 
+import pandas as pd
+
+estimates = pd.DataFrame(results)
+estimates.to_csv("dope_neural_nets/LASSO_net/lasso_net.csv", index=False)
