@@ -15,13 +15,10 @@ class ModelWrapper:
         x = data.net_input
         x = x.requires_grad_(True)
         prediction = self.model.predict_outcome(x)
-        grad = torch.autograd.grad(
-            outputs=prediction,
-            inputs=x,
-            grad_outputs=torch.ones_like(prediction),
-            create_graph=True,
-            retain_graph=True,
+        grad_x = torch.autograd.grad(
+            outputs=prediction, inputs=x, grad_outputs=torch.ones_like(prediction), create_graph=True, retain_graph=True
         )[0]
+        grad = grad_x[:, 0]
         riesz = self.model.predict_riesz(x)
         return grad + riesz * (data.outcomes_tensor - prediction)
 
@@ -121,20 +118,21 @@ class ModelWrapper:
         counter = 0
         for epoch in range(1000):
             self.model.train()
-            for x in loader:
+            for (x,) in loader:
                 x = x.requires_grad_(True)
 
                 optimizer.zero_grad()
 
                 prediction = self.model.predict_riesz(x)
 
-                grad = torch.autograd.grad(
+                grad_x = torch.autograd.grad(
                     outputs=prediction,
                     inputs=x,
                     grad_outputs=torch.ones_like(prediction),
                     create_graph=True,
                     retain_graph=True
                 )[0]
+                grad = grad_x[:, 0]
 
                 loss = criterion(grad, prediction)
                 loss.backward()
@@ -143,13 +141,14 @@ class ModelWrapper:
             x = val_data.net_input
             x = x.requires_grad_(True)
             prediction = self.model.predict_riesz(x)
-            grad = torch.autograd.grad(
+            grad_x = torch.autograd.grad(
                 outputs=prediction,
                 inputs=x,
                 grad_outputs=torch.ones_like(prediction),
                 create_graph=True,
                 retain_graph=True,
             )[0]
+            grad = grad_x[:, 0]
             test_loss = criterion(grad, prediction)
             scheduler.step(test_loss)
             if test_loss.item() < best:
