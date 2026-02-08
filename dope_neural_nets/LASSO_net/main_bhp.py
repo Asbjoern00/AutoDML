@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from dope_neural_nets.LASSO_net.model_bhp import ModelWrapper
-from dope_neural_nets.dataset import Dataset
+from dope_neural_nets.LASSO_net.dataset_bhp import Dataset
 
 np.random.seed(42)
 torch.manual_seed(42)
