@@ -29,7 +29,7 @@ class Dataset:
 
     @classmethod
     def load_chernozhukov_replication(cls, index):
-        path = "AveragePartialDerivative/BHP_data/redrawn_datasets/data_" + str(index) + ".csv"
+        path = "AveragePartialDerivative/BHP_data/redrawn_datasets/complex_f_with_linear_and_non_linear_confounders/data_" + str(index) + ".csv"
         return cls.from_csv(path)
 
     @classmethod
@@ -45,33 +45,24 @@ class Dataset:
     def split_into_folds(self, folds):
         number_of_samples = self.raw_data.shape[0]
         indices = np.arange(number_of_samples, dtype=int)
-        treated_indices = indices[self.treatments == 1]
-        control_indices = indices[self.treatments == 0]
-        np.random.shuffle(treated_indices)
-        np.random.shuffle(control_indices)
-        treated_fold_indices = np.array_split(treated_indices, folds)
-        control_fold_indices = np.array_split(control_indices, folds)
+        np.random.shuffle(indices)
+        fold_indices = np.array_split(indices, folds)
         folds = [
-            self.raw_data[np.concatenate([treated_fold_indices[i], control_fold_indices[i]])] for i in range(folds)
+            self.raw_data[fold_indices[i]] for i in range(folds)
         ]
         return [Dataset(fold, self.outcome_column, self.treatment_column, self.covariate_columns) for fold in folds]
 
     def test_train_split(self, train_proportion):
         number_of_samples = self.raw_data.shape[0]
         indices = np.arange(number_of_samples, dtype=int)
-        treated_indices = indices[self.treatments == 1]
-        control_indices = indices[self.treatments == 0]
 
-        np.random.shuffle(treated_indices)
-        np.random.shuffle(control_indices)
+        np.random.shuffle(indices)
 
-        treated_train_indices = treated_indices[: int(train_proportion * len(treated_indices))]
-        control_train_indices = control_indices[: int(train_proportion * len(control_indices))]
-        train_data = self.raw_data[np.concatenate([treated_train_indices, control_train_indices]), :]
+        train_indices = indices[: int(train_proportion * len(indices))]
+        train_data = self.raw_data[train_indices, :]
 
-        treated_test_indices = treated_indices[int(train_proportion * len(treated_indices)) :]
-        control_test_indices = control_indices[int(train_proportion * len(control_indices)) :]
-        test_data = self.raw_data[np.concatenate([treated_test_indices, control_test_indices]), :]
+        test_indices = indices[int(train_proportion * len(indices)) :]
+        test_data = self.raw_data[test_indices, :]
 
         return (
             Dataset(train_data, self.outcome_column, self.treatment_column, self.covariate_columns),

@@ -7,7 +7,7 @@ np.random.seed(42)
 torch.manual_seed(42)
 
 penalties = [0, 1e-3, 1e-2, 1e-1, 1]
-
+penalties = [0]
 
 def run_experiment(data):
     estimate_components = []
@@ -15,14 +15,14 @@ def run_experiment(data):
     penalty = 0
     best = 1e6
     for pen in penalties:
-        model_wrapper_ = ModelWrapper(in_=25, hidden_size=100, n_shared=3, n_not_shared=2)
+        model_wrapper_ = ModelWrapper(in_=50, hidden_size=100, n_shared=3, n_not_shared=2)
         model_wrapper_.train_outcome_head(train, train_shared_layers=True, lr=1e-3, l1_penalty=pen)
         res = model_wrapper_._get_mse_loss(test.net_input, test.outcomes_tensor).item()
         print(pen, res)
         if res < best:
             best = res
             penalty = pen
-    model_wrapper = ModelWrapper(in_=25, hidden_size=100, n_shared=3, n_not_shared=2)
+    model_wrapper = ModelWrapper(in_=50, hidden_size=100, n_shared=3, n_not_shared=2)
     model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=penalty)
     model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3)
     estimate_components.append(model_wrapper.get_estimate_components(data))

@@ -12,12 +12,18 @@ class ModelWrapper:
 
     def get_estimate_components(self, data: Dataset):
         self.model.eval()
-        treated, control = data.get_counterfactual_datasets()
-        outcome = self.model.predict_outcome(data.net_input)
-        treated_outcome = self.model.predict_outcome(treated.net_input)
-        control_outcome = self.model.predict_outcome(control.net_input)
-        riesz = self.model.predict_riesz(data.net_input)
-        return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
+        x = data.net_input
+        x = x.requires_grad_(True)
+        prediction = self.model.predict_outcome(x)
+        grad = torch.autograd.grad(
+            outputs=prediction,
+            inputs=x,
+            grad_outputs=torch.ones_like(prediction),
+            create_graph=True,
+            retain_graph=True,
+        )[0]
+        riesz = self.model.predict_riesz(x)
+        return grad + riesz * (data.outcomes_tensor - prediction)
 
     def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=30, l1_penalty=0):
         self.model.train()
@@ -90,10 +96,8 @@ class ModelWrapper:
                 param.requires_grad = True
         criterion = RieszLoss()
         train_data, val_data = data.test_train_split(0.8)
-        train_treated, train_control = train_data.get_counterfactual_datasets()
-        val_treated, val_control = val_data.get_counterfactual_datasets()
         loader = DataLoader(
-            TensorDataset(train_data.net_input, train_treated.net_input, train_control.net_input),
+            TensorDataset(train_data.net_input),
             batch_size=64,
             shuffle=True,
         )
@@ -117,21 +121,37 @@ class ModelWrapper:
         counter = 0
         for epoch in range(1000):
             self.model.train()
-            for x, xt, xc in loader:
+            for x in loader:
+                x = x.requires_grad_(True)
+
                 optimizer.zero_grad()
-                actual_riesz = self.model.predict_riesz(x)
-                treated_riesz = self.model.predict_riesz(xt)
-                control_riesz = self.model.predict_riesz(xc)
-                loss = criterion(actual_riesz, treated_riesz, control_riesz)
+
+                prediction = self.model.predict_riesz(x)
+
+                grad = torch.autograd.grad(
+                    outputs=prediction,
+                    inputs=x,
+                    grad_outputs=torch.ones_like(prediction),
+                    create_graph=True,
+                    retain_graph=True
+                )[0]
+
+                loss = criterion(grad, prediction)
                 loss.backward()
                 optimizer.step()
             self.model.eval()
-            with torch.no_grad():
-                actual_riesz = self.model.predict_riesz(val_data.net_input)
-                treated_riesz = self.model.predict_riesz(val_treated.net_input)
-                control_riesz = self.model.predict_riesz(val_control.net_input)
-                test_loss = criterion(actual_riesz, treated_riesz, control_riesz)
-                scheduler.step(test_loss)
+            x = val_data.net_input
+            x = x.requires_grad_(True)
+            prediction = self.model.predict_riesz(x)
+            grad = torch.autograd.grad(
+                outputs=prediction,
+                inputs=x,
+                grad_outputs=torch.ones_like(prediction),
+                create_graph=True,
+                retain_graph=True,
+            )[0]
+            test_loss = criterion(grad, prediction)
+            scheduler.step(test_loss)
             if test_loss.item() < best:
                 best = test_loss.item()
                 counter = 0
