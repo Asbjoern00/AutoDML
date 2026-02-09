@@ -60,7 +60,7 @@ def run():
         data = DatasetHighDim.simulate_dataset(n)
 
         outcome_lasso = OutcomeLASSO(ate_functional)
-        riesz_lasso = RieszLasso(ate_functional, expand_treatment=False)
+        riesz_lasso = RieszLasso(ate_functional, expand_treatment=True)
         propensity_lasso = PropensityLasso()
 
         lassoR = Lasso(riesz_lasso, outcome_lasso)

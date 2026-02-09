@@ -74,7 +74,7 @@ def run():
         n_evaluated = 0
 
         for j in range(n_folds):
-            riesz_lasso = RieszLasso(ate_functional, expand_treatment=False)
+            riesz_lasso = RieszLasso(ate_functional, expand_treatment=True)
             propensity_lasso = PropensityLasso()
             outcome_lasso = OutcomeLASSO(ate_functional)
             lassoR = Lasso(riesz_lasso, outcome_lasso)
