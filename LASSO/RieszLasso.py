@@ -40,7 +40,7 @@ class RieszLasso:
             )
         return design
 
-    def fit(self, data, c1=1 / 5, ridge_penalty=0.00001):
+    def fit(self, data, c1=1 / 5, ridge_penalty=0.0):
 
         xb = self.make_design_matrix(data)
         n, p = xb.shape[0], xb.shape[1]
