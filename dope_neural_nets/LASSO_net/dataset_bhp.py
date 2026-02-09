@@ -107,3 +107,15 @@ class Dataset:
     @property
     def net_input(self):
         return torch.from_numpy(self.raw_data[:, [self.treatment_column] + self.covariate_columns].astype(np.float32))
+
+    @property
+    def lower_net_input(self):
+        dat = self.raw_data[:, [self.treatment_column] + self.covariate_columns]
+        dat[:,0] = dat[:,0] - 1e-3
+        return torch.from_numpy(dat.astype(np.float32))
+
+    @property
+    def upper_net_input(self):
+        dat = self.raw_data[:, [self.treatment_column] + self.covariate_columns]
+        dat[:,0] = dat[:,0] + 1e-3
+        return torch.from_numpy(dat.astype(np.float32))
