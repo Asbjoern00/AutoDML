@@ -24,28 +24,23 @@ class RieszLasso:
         if self.expand_treatment:
             design = np.concatenate(
                 [
-                    data.treatments.reshape(-1, 1)
-                    * np.concatenate(
-                        [np.ones(shape=(data.treatments.shape[0], 1)), data.covariates[:, covariate_indices]], axis=1
-                    ),
-                    (1 - data.treatments.reshape(-1, 1))
-                    * np.concatenate(
-                        [np.ones(shape=(data.treatments.shape[0], 1)), data.covariates[:, covariate_indices]], axis=1
-                    ),
+                    data.treatments.reshape(-1, 1),
+                    1 - data.treatments.reshape(-1, 1),
+                    data.covariates[:, covariate_indices],
                 ],
                 axis=1,
             )
         else:
             design = np.concatenate(
-                        [
-                            data.treatments.reshape(-1, 1),
-                            data.covariates[:, covariate_indices],
-                        ],
-                        axis=1,
-                    )
+                [
+                    data.treatments.reshape(-1, 1),
+                    data.covariates[:, covariate_indices],
+                ],
+                axis=1,
+            )
         return design
 
-    def fit(self, data, c1=1/5, ridge_penalty = 0.00001):
+    def fit(self, data, c1=1 / 5, ridge_penalty=0.00001):
 
         xb = self.make_design_matrix(data)
         n, p = xb.shape[0], xb.shape[1]
@@ -93,7 +88,7 @@ class RieszLasso:
                 if cur_loss < best_loss:
                     best_loss = cur_loss
                     best_c1 = c1
-                print(c1, cur_loss)
+             #   print(c1, cur_loss)
             self.fit(data, best_c1)
 
     def get_riesz_representer(self, data):
@@ -104,7 +99,7 @@ class RieszLasso:
 class PropensityLasso:
     def __init__(self):
         self.model = LogisticRegressionCV(
-            penalty="l1", fit_intercept=True, solver="liblinear", n_jobs=5, Cs=10, scoring="neg_log_loss", tol=0.001
+            penalty="l1", fit_intercept=True, solver="liblinear", n_jobs=5, Cs=25, scoring="neg_log_loss", tol=0.001
         )
         self.covariate_indices = None
 

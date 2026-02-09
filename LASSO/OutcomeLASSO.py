@@ -6,16 +6,18 @@ class OutcomeLASSO:
     def __init__(self, functional):
         self.model = LassoCV(fit_intercept=True, n_jobs=5)
         self.functional = functional
+        self.covariate_indices = None
+
+    def set_covariate_indices(self, covariate_indices):
+        self.covariate_indices = covariate_indices
 
     def make_design_matrix(self,data):
-        #covariates = np.concatenate(
-        #    [np.ones(data.treatments.shape[0]).reshape(-1, 1), data.covariates], axis=1
-        #)
-        #design = np.concatenate(
-        #    [data.treatments.reshape(-1, 1) * covariates, (1 - data.treatments.reshape(-1, 1)) * covariates], axis=1
-        #)
+        if self.covariate_indices is None:
+            covariate_indices = np.arange(data.covariates.shape[1], dtype=np.int32)
+        else:
+            covariate_indices = self.covariate_indices
 
-        design = np.concatenate([data.treatments.reshape(-1, 1), data.covariates], axis=1)
+        design = np.concatenate([data.treatments.reshape(-1, 1), data.covariates[:,covariate_indices]], axis=1)
 
         return design
 
