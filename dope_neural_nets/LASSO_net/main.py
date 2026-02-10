@@ -6,6 +6,10 @@ from dope_neural_nets.dataset import Dataset
 np.random.seed(42)
 torch.manual_seed(42)
 
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+
+
 penalties = [0, 1e-3, 1e-2, 1e-1, 1]
 
 
@@ -69,4 +73,4 @@ for i in range(1000):
 import pandas as pd
 
 estimates = pd.DataFrame(results)
-estimates.to_csv("dope_neural_nets/LASSO_net/lasso_net.csv", index=False)
+estimates.to_csv("dope_neural_nets/LASSO_net/lasso_net_not_parallel.csv", index=False)
