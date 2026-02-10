@@ -73,10 +73,10 @@ def run_experiment(indices):
 
 if __name__ == "__main__":
     indices = [i for i in range(1000)]
-    chunk_size = 143
+    chunk_size = 167
     chunks = [indices[i : i + chunk_size] for i in range(0, len(indices), chunk_size)]
     mp.set_start_method("spawn", force=True)
-    n_proc = 7
+    n_proc = 6
 
     with mp.Pool(processes=n_proc) as p:
         results = p.map(run_experiment, chunks)
