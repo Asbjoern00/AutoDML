@@ -5,7 +5,7 @@ import torch
 
 class Dataset:
     def __init__(
-        self, raw_data: np.ndarray, outcome_column: int, treatment_column: int, covariate_columns: list = None
+        self, raw_data: np.ndarray, outcome_column: int, treatment_column: int, covariate_columns: list = None, truth=None
     ):
         self.raw_data = raw_data
         self.outcome_column = outcome_column
@@ -13,19 +13,22 @@ class Dataset:
         if not covariate_columns:
             covariate_columns = [i for i in range(raw_data.shape[1]) if i not in [outcome_column, treatment_column]]
         self.covariate_columns = covariate_columns
+        self.truth = truth
 
     @classmethod
     def from_csv(cls, path):
         data = np.loadtxt(path, skiprows=1, delimiter=",")
+        truth = np.mean(data[:, 0])
         data = data[:, 1:]
         return cls(
             raw_data=data,
             treatment_column=1,
             outcome_column=0,
+            truth=truth
         )
 
     def get_truth(self):
-        return -0.6
+        return self.truth
 
     @classmethod
     def load_chernozhukov_replication(cls, index):
@@ -104,3 +107,15 @@ class Dataset:
     @property
     def net_input(self):
         return torch.from_numpy(self.raw_data[:, [self.treatment_column] + self.covariate_columns].astype(np.float32))
+
+    @property
+    def lower_net_input(self):
+        dat = self.raw_data[:, [self.treatment_column] + self.covariate_columns]
+        dat[:,0] = dat[:,0] - 1e-3
+        return torch.from_numpy(dat.astype(np.float32))
+
+    @property
+    def upper_net_input(self):
+        dat = self.raw_data[:, [self.treatment_column] + self.covariate_columns]
+        dat[:,0] = dat[:,0] + 1e-3
+        return torch.from_numpy(dat.astype(np.float32))

@@ -15,15 +15,15 @@ def run_experiment(data):
     best = 1e6
     for pen in penalties:
         model_wrapper_ = ModelWrapper(in_=50, hidden_size=100, n_shared=3, n_not_shared=2)
-        model_wrapper_.train_outcome_head(train, train_shared_layers=True, lr=1e-3, l1_penalty=pen)
+        model_wrapper_.train_outcome_head(train, train_shared_layers=True, lr=1e-3, l1_penalty=pen, wd=1e-5)
         res = model_wrapper_._get_mse_loss(test.net_input, test.outcomes_tensor).item()
         print(pen, res)
         if res < best:
             best = res
             penalty = pen
     model_wrapper = ModelWrapper(in_=50, hidden_size=100, n_shared=3, n_not_shared=2)
-    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=penalty)
-    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3)
+    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=penalty, wd=1e-5)
+    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3, wd=1e-5)
     estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()
@@ -68,4 +68,4 @@ for i in range(1000):
 import pandas as pd
 
 estimates = pd.DataFrame(results)
-estimates.to_csv("dope_neural_nets/LASSO_net/lasso_net.csv", index=False)
+estimates.to_csv("dope_neural_nets/LASSO_net/lasso_net_bhp.csv", index=False)
