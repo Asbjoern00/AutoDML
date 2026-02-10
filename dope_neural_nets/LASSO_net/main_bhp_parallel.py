@@ -12,20 +12,20 @@ torch.set_num_interop_threads(1)
 
 def _run_iteration(data):
     estimate_components = []
-    train, test = data.test_train_split(0.8)
+    #train, test = data.test_train_split(0.8)
     penalty = 0
     best = 1e6
     #for pen in [0, 1e-3, 1e-2, 1e-1, 1]:
     #    model_wrapper_ = ModelWrapper(in_=50, hidden_size=100, n_shared=3, n_not_shared=2)
-    #    model_wrapper_.train_outcome_head(train, train_shared_layers=True, lr=1e-3, l1_penalty=pen, wd=1e-5)
+    #    model_wrapper_.train_outcome_head(train, train_shared_layers=True, lr=1e-3, l1_penalty=pen, wd=1e-3)
     #    res = model_wrapper_._get_mse_loss(test.net_input, test.outcomes_tensor).item()
     #    print(pen, res)
     #    if res < best:
     #        best = res
     #        penalty = pen
     model_wrapper = ModelWrapper(in_=50, hidden_size=100, n_shared=3, n_not_shared=2)
-    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=0, wd=1e-5)
-    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3, wd=1e-5)
+    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=0, wd=1e-3)
+    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3, wd=1e-3)
     estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()
@@ -44,7 +44,7 @@ def run_experiment(indices):
     for i in indices:
         np.random.seed(i)
         torch.manual_seed(i)
-        data = Dataset.load_chernozhukov_replication(i + 1)
+        data = Dataset.load_chernozhukov_replication(i)
         result = _run_iteration(data)
         results.append(result)
         residuals = [result["estimate"] - result["truth"] for result in results]
