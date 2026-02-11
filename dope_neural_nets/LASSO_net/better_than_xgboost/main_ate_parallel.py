@@ -13,8 +13,8 @@ torch.set_num_interop_threads(1)
 def _run_iteration(data):
     estimate_components = []
     model_wrapper = ModelWrapper(in_=10, hidden_size=100, n_shared=3, n_not_shared=2)
-    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=1, wd=1e-3)
-    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3, wd=1e-3)
+    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=.01, wd=1e-3)
+    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3)
     estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()
@@ -33,7 +33,7 @@ def run_experiment(indices):
     for i in indices:
         np.random.seed(i)
         torch.manual_seed(i)
-        data = Dataset.simulate_dataset(1000, 1)
+        data = Dataset.simulate_dataset(1000, 10)
         result = _run_iteration(data)
         results.append(result)
         _print_diagnostics(results)
@@ -65,11 +65,11 @@ if __name__ == "__main__":
     chunk_size = 1
     chunks = [indices[i : i + chunk_size] for i in range(0, len(indices), chunk_size)]
     mp.set_start_method("spawn", force=True)
-    n_proc = 5
+    n_proc = 4
     result = []
-    for i in range(200):
+    for i in range(250):
         with mp.Pool(processes=n_proc) as p:
-            results = p.map(run_experiment, chunks[i * 5 : (i + 1) * 5])
+            results = p.map(run_experiment, chunks[i * 4 : (i + 1) * 4])
         for res in results:
             result += res
         print("Total Iterations", len(result))
