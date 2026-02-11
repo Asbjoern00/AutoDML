@@ -31,8 +31,15 @@ class Dataset:
         return self.truth
 
     @classmethod
-    def load_chernozhukov_replication(cls, index):
-        path = "AveragePartialDerivative/BHP_data/redrawn_datasets/complex_f_with_linear_and_non_linear_confounders/data_" + str(index) + ".csv"
+    def load_chernozhukov_replication(cls, index, simple = False):
+        if simple:
+            path = (
+                "AveragePartialDerivative/BHP_data/redrawn_datasets/simple_f_with_linear_confounders/data_"
+                + str(index)
+                + ".csv"
+            )
+        else:
+            path = "AveragePartialDerivative/BHP_data/redrawn_datasets/complex_f_with_linear_and_non_linear_confounders/data_" + str(index) + ".csv"
         return cls.from_csv(path)
 
     @classmethod
