@@ -37,7 +37,7 @@ def run_experiment(indices):
         result = _run_iteration(data)
         results.append(result)
         _print_diagnostics(results)
-    return results
+        return results
 
 
 def _print_diagnostics(results):
@@ -62,12 +62,12 @@ def _print_diagnostics(results):
 
 if __name__ == "__main__":
     indices = [i for i in range(1000)]
-    chunk_size = 4
+    chunk_size = 1
     chunks = [indices[i : i + chunk_size] for i in range(0, len(indices), chunk_size)]
     mp.set_start_method("spawn", force=True)
     n_proc = 5
     result = []
-    for i in range(50):
+    for i in range(200):
         with mp.Pool(processes=n_proc) as p:
             results = p.map(run_experiment, chunks[i * 5 : (i + 1) * 5])
         for res in results:
@@ -75,4 +75,4 @@ if __name__ == "__main__":
         print("Total Iterations", len(result))
         _print_diagnostics(result)
     df = pd.DataFrame(result)
-    df.to_csv("dope_neural_nets/LASSO_net/lasso_net_ase.csv", index=False)
+    df.to_csv("dope_neural_nets/LASSO_net/lasso_net_ate.csv", index=False)
