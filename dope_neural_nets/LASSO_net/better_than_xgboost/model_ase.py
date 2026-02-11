@@ -53,8 +53,10 @@ class ModelWrapper:
             for x, y in loader:
                 optimizer.zero_grad()
                 mse_loss = self._get_mse_loss(x, y)
-                l1_loss = l1_penalty * self.model.outcome_base.lasso_layer.weight.abs().sum()
-                loss = mse_loss + l1_loss
+                W = self.model.outcome_base.lasso_layer.weight
+                neuron_l2 = torch.norm(W, dim=1)
+                group_lasso_loss = l1_penalty * torch.sum(neuron_l2)
+                loss = mse_loss + group_lasso_loss
                 loss.backward()
                 optimizer.step()
             self.model.eval()

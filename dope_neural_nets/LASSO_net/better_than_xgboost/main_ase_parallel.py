@@ -12,19 +12,8 @@ torch.set_num_interop_threads(1)
 
 def _run_iteration(data):
     estimate_components = []
-    train, test = data.test_train_split(0.8)
-    best = 1e6
-    penalty = 0
-    for pen in [0, 1e-4, 1e-3, 1e-2]:
-        model_wrapper_ = ModelWrapper(in_=1, hidden_size=100, n_shared=3, n_not_shared=2)
-        model_wrapper_.train_outcome_head(train, train_shared_layers=True, lr=1e-3, l1_penalty=pen, wd=1e-3)
-        res = model_wrapper_._get_mse_loss(test.net_input, test.outcomes_tensor).item()
-        if res < best:
-            best = res
-            penalty = pen
-    print("best", penalty, best)
     model_wrapper = ModelWrapper(in_=1, hidden_size=100, n_shared=3, n_not_shared=2)
-    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=penalty, wd=1e-3)
+    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=0, wd=1e-3)
     model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3, wd=1e-3)
     estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
@@ -48,7 +37,7 @@ def run_experiment(indices):
         result = _run_iteration(data)
         results.append(result)
         _print_diagnostics(results)
-    return results
+        return results
 
 
 def _print_diagnostics(results):
@@ -57,7 +46,6 @@ def _print_diagnostics(results):
     mae = sum(abs(residual) for residual in residuals) / len(residuals)
     bias = sum(residuals) / len(residuals)
     mean_est = sum(result["estimate"] for result in results) / len(results)
-    variance = sum((result["estimate"] - mean_est) ** 2 for result in results) / len(results)
     coverage = sum(result["lower"] <= result["truth"] <= result["upper"] for result in results) / len(results)
     print(
         "RMSE:",
@@ -73,15 +61,14 @@ def _print_diagnostics(results):
 
 if __name__ == "__main__":
     indices = [i for i in range(1000)]
-    chunk_size = 4
+    chunk_size = 1
     chunks = [indices[i : i + chunk_size] for i in range(0, len(indices), chunk_size)]
     mp.set_start_method("spawn", force=True)
     n_proc = 5
-
-    for i in range(50):
+    result = []
+    for i in range(200):
         with mp.Pool(processes=n_proc) as p:
             results = p.map(run_experiment, chunks[i * 5 : (i + 1) * 5])
-        result = []
         for res in results:
             result += res
         print("Total Iterations", len(result))
