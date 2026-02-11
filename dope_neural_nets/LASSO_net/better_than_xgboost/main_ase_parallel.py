@@ -1,7 +1,7 @@
 import torch
 import numpy as np
-from dope_neural_nets.LASSO_net.model import ModelWrapper
-from dope_neural_nets.dataset import Dataset
+from dope_neural_nets.LASSO_net.better_than_xgboost.model_ase import ModelWrapper
+from dope_neural_nets.LASSO_net.better_than_xgboost.dataset_ase import Dataset
 import pandas as pd
 import multiprocessing as mp
 
@@ -12,9 +12,9 @@ torch.set_num_interop_threads(1)
 
 def _run_iteration(data):
     estimate_components = []
-    model_wrapper = ModelWrapper(in_=25, hidden_size=100, n_shared=3, n_not_shared=2)
-    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=1)
-    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3)
+    model_wrapper = ModelWrapper(in_=1, hidden_size=100, n_shared=3, n_not_shared=2)
+    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3, l1_penalty=0, wd=1e-3)
+    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3, wd=1e-3)
     estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()
@@ -33,11 +33,12 @@ def run_experiment(indices):
     for i in indices:
         np.random.seed(i)
         torch.manual_seed(i)
-        data = Dataset.load_chernozhukov_replication(i + 1)
+        data = Dataset.simulate_dataset(1000, 1)
         result = _run_iteration(data)
         results.append(result)
         _print_diagnostics(results)
         return results
+
 
 def _print_diagnostics(results):
     residuals = [result["estimate"] - result["truth"] for result in results]
@@ -45,7 +46,6 @@ def _print_diagnostics(results):
     mae = sum(abs(residual) for residual in residuals) / len(residuals)
     bias = sum(residuals) / len(residuals)
     mean_est = sum(result["estimate"] for result in results) / len(results)
-    variance = sum((result["estimate"] - mean_est) ** 2 for result in results) / len(results)
     coverage = sum(result["lower"] <= result["truth"] <= result["upper"] for result in results) / len(results)
     print(
         "RMSE:",
@@ -57,6 +57,7 @@ def _print_diagnostics(results):
         "Coverage:",
         coverage,
     )
+
 
 if __name__ == "__main__":
     indices = [i for i in range(1000)]
@@ -73,4 +74,4 @@ if __name__ == "__main__":
         print("Total Iterations", len(result))
         _print_diagnostics(result)
     df = pd.DataFrame(result)
-    df.to_csv("dope_neural_nets/LASSO_net/lasso_net_ihdp.csv", index=False)
+    df.to_csv("dope_neural_nets/LASSO_net/lasso_net_ase.csv", index=False)
