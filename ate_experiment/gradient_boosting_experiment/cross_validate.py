@@ -3,7 +3,6 @@ import numpy as np
 from ate_experiment.dataset import Dataset
 from ate_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, PropensityXGBModel, RieszXGBModel
 
-np.random.seed(20122025)
 
 data = Dataset.simulate_dataset(1000, 10)
 

@@ -25,14 +25,14 @@ iterations = 1000
 number_of_samples = 1000
 number_of_covariates = 1
 
-#outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "lambda": 10, "max_depth": 3}
-#propensity_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.3, "lambda": 10, "max_depth": 2}
-#riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.1, "lambda": 100}
+# outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "lambda": 10, "max_depth": 3}
+# propensity_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.3, "lambda": 10, "max_depth": 2}
+# riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.1, "lambda": 100}
 
 for i in range(1000):
 
     print(i)
-
+    np.random.seed(i)
     data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=number_of_covariates)
     outcome_params, riesz_params, propensity_params = cross_validate(data)
 
@@ -86,6 +86,7 @@ for i in range(1000):
     propensity_coverage = sum(propensity_covers) / len(propensity_covers)
     riesz_coverage = sum(riesz_covers) / len(riesz_covers)
 
+    print(plug_in, propensity_estimate, riesz_estimate)
     print(plugin_mse**0.5, propensity_mse**0.5, riesz_mse**0.5)
     print(propensity_coverage, riesz_coverage)
 

@@ -34,7 +34,7 @@ number_of_folds = 5
 for i in range(iterations):
 
     print(i)
-
+    np.random.seed(i)
     data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=number_of_covariates)
     outcome_params, riesz_params, propensity_params = cross_validate(data)
 

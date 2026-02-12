@@ -3,9 +3,6 @@ import numpy as np
 from ase_experiment.dataset import Dataset
 from ase_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, TreatmentXGBModel, RieszXGBModel
 
-np.random.seed(249538)
-
-
 depths = [2, 3, 4, 5]
 etas = [0.01, 0.05, 0.1, 0.3]
 lambdas = [1, 10, 50, 100]

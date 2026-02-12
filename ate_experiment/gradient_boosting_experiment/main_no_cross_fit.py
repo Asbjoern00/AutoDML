@@ -37,6 +37,7 @@ for i in range(iterations):
     print(i)
 
     data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=number_of_covariates)
+    np.random.seed(i)
     outcome_params, riesz_params, propensity_params = cross_validate(data)
 
     outcome_model = OutcomeXGBModel(outcome_params)
