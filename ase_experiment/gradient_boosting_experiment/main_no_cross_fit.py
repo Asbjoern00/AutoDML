@@ -2,6 +2,7 @@ import numpy as np
 
 from ase_experiment.dataset import Dataset
 from ase_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, TreatmentXGBModel, RieszXGBModel
+from ase_experiment.gradient_boosting_experiment.cross_validate import cross_validate
 
 np.random.seed(2131)
 
@@ -24,15 +25,17 @@ iterations = 1000
 number_of_samples = 1000
 number_of_covariates = 1
 
-outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "lambda": 10, "max_depth": 3}
-propensity_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.3, "lambda": 10, "max_depth": 2}
-riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.1, "lambda": 100}
+#outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "lambda": 10, "max_depth": 3}
+#propensity_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.3, "lambda": 10, "max_depth": 2}
+#riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.1, "lambda": 100}
 
 for i in range(1000):
 
     print(i)
 
     data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=number_of_covariates)
+    outcome_params, riesz_params, propensity_params = cross_validate(data)
+
     outcome_model = OutcomeXGBModel(outcome_params)
     outcome_model.fit(data)
     outcome_predictions = outcome_model.get_predictions(data)
