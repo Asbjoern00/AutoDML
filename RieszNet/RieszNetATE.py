@@ -65,7 +65,7 @@ class ATERieszNetwork(nn.Module):
     def get_riesz_representer(self, data):
         z = self._forward_shared(data)
         rr = self.rr_head(z)
-        rr = torch.clip(rr, -100, 100)
+        rr = torch.clip(rr, -10000, 10000)
         return rr
 
     def get_plugin_estimate(self, data):

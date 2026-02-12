@@ -1,6 +1,7 @@
 library(tidyverse)
 res <- read_csv("ate_experiment/LASSO_experiment/DOPE/InformedLasso.csv")
-df <- res %>% select(-c(truth, covered_outcome_adapted, covered_riesz_adapted)) %>% pivot_longer(cols = everything(), names_to = "Estimator",values_to = "Estimate") %>% mutate(Estimator = str_replace(Estimator,"_", " ")) %>% filter(Estimate != 0)
+df <- res %>% select(-c(truth, covered_outcome_adapted, covered_riesz_adapted)) %>% pivot_longer(cols = everything(), names_to = "Estimator",values_to = "Estimate") %>% mutate(Estimator = str_replace(Estimator,"_", " ")) %>% filter(Estimate != 0) %>% 
+  mutate(Estimator = case_when(Estimator == "Riesz" ~ "Separate", TRUE ~ Estimator))
 
 stats <- df %>% group_by(Estimator) %>% summarise(Bias = mean(Estimate)-1, RMSE = sqrt(mean((Estimate-1)^2)), Variance =  var(Estimate))
 df %>%

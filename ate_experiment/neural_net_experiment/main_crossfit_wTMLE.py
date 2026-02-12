@@ -13,14 +13,14 @@ import pandas as pd
 def run(n_riesz):
 
     m = 1000
-    rr_weights = 2**np.arange(-5,0, step = 1)
+    rr_weights = 2.0**np.arange(-7,5, step = 1)
     tmle_weight = 1
 
 
     for rr_weight in rr_weights:
 
-        if os.path.exists(f"ate_experiment/neural_net_experiment/results/wTMLE/rr_w_{rr_weight}.csv"):
-            res = pd.read_csv(f"ate_experiment/neural_net_experiment/results/wTMLE/rr_w_{rr_weight}.csv")
+        if os.path.exists(f"ate_experiment/neural_net_experiment/results/wTMLE/rr_w_{rr_weight}_n_riesz_{n_riesz}.csv") and rr_weight != 2.0**(-4):
+            res = pd.read_csv(f"ate_experiment/neural_net_experiment/results/wTMLE/rr_w_{rr_weight}_n_riesz_{n_riesz}.csv")
             est_plugin_riesz = np.array(res["plugin_estimate_riesz"])
             est_riesz = np.array(res["riesz_estimate"])
             var_riesz = np.array(res["riesz_variance"])
@@ -104,7 +104,7 @@ def run(n_riesz):
             ).T
 
             np.savetxt(
-                f"ate_experiment/neural_net_experiment/results/wTMLE/rr_w_{rr_weight}.csv",
+                f"ate_experiment/neural_net_experiment/results/wTMLE/rr_w_{rr_weight}_n_riesz_{n_riesz}.csv",
                 results,
                 delimiter=",",
                 header=",".join(headers),
@@ -112,4 +112,4 @@ def run(n_riesz):
             )
 
 if __name__ == "__main__":
-    run(n_riesz=2)
+    run(n_riesz=0)

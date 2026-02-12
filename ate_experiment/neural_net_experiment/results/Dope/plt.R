@@ -23,27 +23,27 @@ for(file in res_files){
 
 agg_res <- results  %>% group_by(Informed) %>% 
   summarise(bias = mean(truth-riesz_estimate), variance = var(riesz_estimate), rmse = sqrt(mean((truth-riesz_estimate)^2)), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
-            est_as_var = mean(riesz_variance), avg_len = mean(riesz_upper-riesz_lower))
+            est_as_var = mean(riesz_variance), avg_len = mean(riesz_upper-riesz_lower), rmse_plugin = sqrt(mean((truth-plugin_estimate_riesz)^2)))
 
 
 res_weights <- tibble()
 
-res_files <- list.files("ate_experiment/neural_net_experiment/results/wTMLE/",pattern = "*.csv", full.names = TRUE)
+res_files <- list.files("ate_experiment/neural_net_experiment/results/wTMLE/",pattern = "*0.csv", full.names = TRUE)
 for(file in res_files){
-  res <-read_csv(file)
+  res <-read_csv(file) %>% filter(riesz_variance > 0)
   res$TMLE <- 1
   res_weights <- bind_rows(res,res_weights)
 }
 
 
-res_files <- list.files("ate_experiment/neural_net_experiment/results/woTMLE/",pattern = "*.csv", full.names = TRUE)
+res_files <- list.files("ate_experiment/neural_net_experiment/results/woTMLE/",pattern = "*0.csv", full.names = TRUE)
 for(file in res_files){
-  res <-read_csv(file)
+  res <- read_csv(file) %>% filter(riesz_variance > 0)
   res$TMLE <- 0
   res_weights <- bind_rows(res,res_weights)
 }
-
-agg_res_w <- res_weights %>% filter(rr_weight < 2) %>% group_by(rr_weight,TMLE) %>%
+mask <- 2^seq(-7,0, by = 2)
+agg_res_w <- res_weights %>% filter(rr_weight %in% mask) %>% group_by(rr_weight,TMLE) %>%
   summarise(bias = mean(truth-riesz_estimate), variance = mean((riesz_estimate-mean(riesz_estimate))^2), rmse = sqrt(mean((truth-riesz_estimate)^2)), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
             est_as_var = mean(riesz_variance), avg_len = mean(riesz_upper-riesz_lower)) %>% 
   mutate(TMLE = case_when(TMLE == 1 ~ "RieszNet, TMLE weight 1",
@@ -61,13 +61,19 @@ tmle_colors <- c(
 a <- agg_res_w %>% ggplot(aes(x = rr_weight, color = as.factor(TMLE), y = rmse)) + 
   geom_point() + 
   geom_line() + 
-  scale_x_continuous(transform = "log2") +
+  scale_x_continuous(
+    trans = "log2",
+    breaks = mask,
+    labels = function(x) {
+      parse(text = paste0("2^", log2(x)))
+    }
+  ) + 
   geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Outcome") %>% pull("rmse"),color = "Outcome Informed")) +
   geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Riesz") %>% pull("rmse"),color = "Riesz Informed")) +
   geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Separate") %>% pull("rmse"),color = "Separate Neural Nets")) +
   labs(color = NULL) + 
   ylab("RMSE") + 
-  xlab("Riesz representer weight") + 
+  xlab("RieszLoss weight") + 
   theme_bw() 
 
 b <- agg_res_w %>% ggplot(aes(x = rr_weight, color = TMLE, y = bias)) + 

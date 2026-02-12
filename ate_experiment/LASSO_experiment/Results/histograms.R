@@ -32,16 +32,6 @@ a = ggplot(no_cross_fit_results)+
            label = paste0("Bias: ", round(a_bias,5)), 
            hjust = 1.1, vjust = 4.2, 
            size = 4)+
-  annotate("text", 
-           x = Inf, y = Inf, 
-           label = paste0("Plug-in Bias: ", round(no_cf_bias,5)), 
-           hjust = 1.1, vjust = 6.3, 
-           size = 4)+
-  annotate("text", 
-           x = Inf, y = Inf, 
-           label = paste0("Plug-in RMSE: ", round(no_cf_rmse,5)), 
-           hjust = 1.1, vjust = 8.4, 
-           size = 4)+
   theme_classic()
 
 b_rmse = mean((no_cross_fit_results$riesz_estimate - no_cross_fit_results$truth)^2)^(1/2)
@@ -70,17 +60,7 @@ b = ggplot(no_cross_fit_results)+
            x = Inf, y = Inf, 
            label = paste0("Bias: ", round(b_bias,5)), 
            hjust = 1.1, vjust = 4.2, 
-           size = 4)+
-  annotate("text", 
-           x = Inf, y = Inf, 
-           label = paste0("Plug-in Bias: ", round(no_cf_bias,5)), 
-           hjust = 1.1, vjust = 6.3, 
-           size = 4)+
-  annotate("text", 
-           x = Inf, y = Inf, 
-           label = paste0("Plug-in RMSE: ", round(no_cf_rmse,5)), 
-           hjust = 1.1, vjust = 8.4, 
-           size = 4)+
+           size = 4) + 
   theme_classic()
 
 c_rmse = mean((cross_fit_results$propensity_estimate - cross_fit_results$truth)^2)^(1/2)
@@ -109,17 +89,7 @@ c = ggplot(cross_fit_results)+
            x = Inf, y = Inf, 
            label = paste0("Bias: ", round(c_bias,5)), 
            hjust = 1.1, vjust = 4.2, 
-           size = 4)+
-  annotate("text", 
-           x = Inf, y = Inf, 
-           label = paste0("Plug-in Bias: ", round(cf_bias,5)), 
-           hjust = 1.1, vjust = 6.3, 
-           size = 4)+
-  annotate("text", 
-           x = Inf, y = Inf, 
-           label = paste0("Plug-in RMSE: ", round(cf_rmse,5)), 
-           hjust = 1.1, vjust = 8.4, 
-           size = 4)+
+           size = 4) + 
   theme_classic()
 
 d_rmse = mean((cross_fit_results$riesz_estimate - cross_fit_results$truth)^2)^(1/2)
@@ -143,22 +113,12 @@ d = ggplot(cross_fit_results)+
            x = Inf, y = Inf, 
            label = paste0("RMSE: ", round(d_rmse,5)), 
            hjust = 1.1, vjust = 2.1, 
-           size = 4)+
+           size = 4) + 
   annotate("text", 
            x = Inf, y = Inf, 
-           label = paste0("Bias: ", round(d_bias,5)), 
+           label = paste0("Bias: ", round(b_rmse,5)), 
            hjust = 1.1, vjust = 4.2, 
-           size = 4)+
-  annotate("text", 
-           x = Inf, y = Inf, 
-           label = paste0("Plug-in Bias: ", round(cf_bias,5)), 
-           hjust = 1.1, vjust = 6.3, 
-           size = 4)+
-  annotate("text", 
-           x = Inf, y = Inf, 
-           label = paste0("Plug-in RMSE: ", round(cf_rmse,5)), 
-           hjust = 1.1, vjust = 8.4, 
-           size = 4)+
+           size = 4) + 
   theme_classic()
 
 a+b+c+d

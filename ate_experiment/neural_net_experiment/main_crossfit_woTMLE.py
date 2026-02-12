@@ -14,7 +14,7 @@ import pandas as pd
 def run(n_riesz):
 
     m = 1000
-    rr_weights = 2.0 ** np.arange(-5, 0, step=1)
+    rr_weights = 2.0 ** np.arange(-7, 5, step=1)
     tmle_weight = 0.0
 
     for rr_weight in rr_weights:
@@ -122,4 +122,4 @@ def run(n_riesz):
 
 
 if __name__ == "__main__":
-    run(n_riesz=2)
+    run(n_riesz=0)
