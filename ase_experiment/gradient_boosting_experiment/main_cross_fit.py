@@ -23,14 +23,14 @@ number_of_samples = 1000
 number_of_covariates = 1
 number_of_folds = 5
 
-outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "lambda": 10, "max_depth": 3}
-propensity_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.3, "lambda": 10, "max_depth": 2}
-riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.1, "lambda": 100}
+#outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.1, "lambda": 10, "max_depth": 3}
+#propensity_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.3, "lambda": 10, "max_depth": 2}
+#riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.1, "lambda": 100}
 
 for i in range(iterations):
 
     print(i)
-
+    np.random.seed(i)
     data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=number_of_covariates)
     folds = data.split_into_folds(number_of_folds)
 

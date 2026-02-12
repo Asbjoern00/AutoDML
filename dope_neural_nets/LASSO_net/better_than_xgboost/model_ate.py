@@ -74,6 +74,7 @@ class ModelWrapper:
             if counter >= patience:
                 break
         self.model.load_state_dict(best_state)
+        print(neuron_l2)
         return best
 
     def _get_mse_loss(self, x, y):

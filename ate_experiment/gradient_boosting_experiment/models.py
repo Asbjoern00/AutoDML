@@ -28,7 +28,7 @@ class OutcomeXGBModel:
             early_stopping_rounds=10,
             verbose_eval=False,
         )
-        return cv['test-rmse-mean'][-1]
+        return cv['test-rmse-mean'].min()
 
     def get_predictions(self, data):
         treated_data, control_data = data.get_counterfactual_datasets()
@@ -66,7 +66,7 @@ class PropensityXGBModel:
             early_stopping_rounds=10,
             verbose_eval=False,
         )
-        return cv['test-logloss-mean'][-1]
+        return cv['test-logloss-mean'].min()
 
     def get_riesz_representer(self, data):
         propensity_scores = self.model.predict(data.xgb_propensity_dataset)
@@ -102,7 +102,7 @@ class RieszXGBModel:
             early_stopping_rounds=10,
             verbose_eval=False,
         )
-        return cv["test-Riesz-Loss-mean"][-1]
+        return cv["test-Riesz-Loss-mean"].min()
 
     def get_riesz_representer(self, data):
         propensity_scores = self.model.predict(data.xgb_riesz_dataset)

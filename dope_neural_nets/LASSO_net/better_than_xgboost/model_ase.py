@@ -12,12 +12,10 @@ class ModelWrapper:
 
     def get_estimate_components(self, data: Dataset):
         self.model.eval()
-        treated, control = data.get_counterfactual_datasets()
-        outcome = self.model.predict_outcome(data.net_input)
-        treated_outcome = self.model.predict_outcome(treated.net_input)
-        control_outcome = self.model.predict_outcome(control.net_input)
+        prediction = self.model.predict_outcome(data.net_input)
+        upper = self.model.predict_outcome(data.upper_net_input)
         riesz = self.model.predict_riesz(data.net_input)
-        return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
+        return upper - prediction + riesz * (data.outcomes_tensor - prediction)
 
     def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=30, l1_penalty=0):
         self.model.train()
@@ -64,7 +62,7 @@ class ModelWrapper:
             self.model.eval()
             with torch.no_grad():
                 test_loss = self._get_mse_loss(data.net_input, data.outcomes_tensor)
-                scheduler.step(test_loss)
+                scheduler.step(test_loss.item())
             if test_loss.item() < best:
                 best = test_loss.item()
                 counter = 0
@@ -74,6 +72,7 @@ class ModelWrapper:
             if counter >= patience:
                 break
         self.model.load_state_dict(best_state)
+        print(neuron_l2)
         return best
 
     def _get_mse_loss(self, x, y):
@@ -81,7 +80,7 @@ class ModelWrapper:
         mse_loss = self.outcome_criterion(predictions, y)
         return mse_loss
 
-    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=30):
+    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=30, wd=1e-3):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -92,17 +91,15 @@ class ModelWrapper:
                 param.requires_grad = True
         criterion = RieszLoss()
         train_data, val_data = data.test_train_split(0.8)
-        train_treated, train_control = train_data.get_counterfactual_datasets()
-        val_treated, val_control = val_data.get_counterfactual_datasets()
         loader = DataLoader(
-            TensorDataset(train_data.net_input, train_treated.net_input, train_control.net_input),
+            TensorDataset(train_data.net_input, train_data.lower_net_input, train_data.upper_net_input),
             batch_size=64,
             shuffle=True,
         )
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
             lr=lr,
-            weight_decay=1e-3,
+            weight_decay=wd,
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
@@ -119,21 +116,18 @@ class ModelWrapper:
         counter = 0
         for epoch in range(1000):
             self.model.train()
-            for x, xt, xc in loader:
+            for x, l, u in loader:
                 optimizer.zero_grad()
-                actual_riesz = self.model.predict_riesz(x)
-                treated_riesz = self.model.predict_riesz(xt)
-                control_riesz = self.model.predict_riesz(xc)
-                loss = criterion(actual_riesz, treated_riesz, control_riesz)
+                prediction = self.model.predict_riesz(x)
+                upper = self.model.predict_riesz(u)
+                loss = criterion(upper, prediction)
                 loss.backward()
                 optimizer.step()
             self.model.eval()
-            with torch.no_grad():
-                actual_riesz = self.model.predict_riesz(val_data.net_input)
-                treated_riesz = self.model.predict_riesz(val_treated.net_input)
-                control_riesz = self.model.predict_riesz(val_control.net_input)
-                test_loss = criterion(actual_riesz, treated_riesz, control_riesz)
-                scheduler.step(test_loss)
+            prediction = self.model.predict_riesz(val_data.net_input)
+            upper = self.model.predict_riesz(val_data.upper_net_input)
+            test_loss = criterion(upper, prediction)
+            scheduler.step(test_loss.item())
             if test_loss.item() < best:
                 best = test_loss.item()
                 counter = 0
@@ -151,7 +145,7 @@ class Model(nn.Module):
         shared_layers = SharedLayers(in_=in_, hidden_size=hidden_size, n_shared=n_shared)
         self.outcome_base = shared_layers
         self.riesz_base = shared_layers
-        self.outcome_layers = BiHead(hidden_size, hidden_size, n_not_shared)
+        self.outcome_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
         self.riesz_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
 
     def predict_outcome(self, x):
@@ -168,8 +162,8 @@ class Model(nn.Module):
 
 
 class RieszLoss(nn.Module):
-    def forward(self, actual_riesz, treated_riesz, control_riesz):
-        return torch.mean(actual_riesz**2 - 2 * (treated_riesz - control_riesz))
+    def forward(self, upper, prediction):
+        return torch.mean(prediction**2 - 2 * (upper - prediction))
 
 
 class SharedLayers(nn.Module):
