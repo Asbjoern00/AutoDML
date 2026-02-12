@@ -2,6 +2,7 @@ import numpy as np
 
 from ate_experiment.dataset import Dataset
 from ate_experiment.gradient_boosting_experiment.models import OutcomeXGBModel, PropensityXGBModel, RieszXGBModel
+from ate_experiment.gradient_boosting_experiment.cross_validate import cross_validate
 
 np.random.seed(2131)
 
@@ -25,9 +26,10 @@ number_of_samples = 1000
 number_of_covariates = 10
 number_of_folds = 10
 
-outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.05, "lambda": 100, "max_depth": 2}
-propensity_params = {"objective": "binary:logistic", "eval_metric": "logloss", "eta": 0.3, "lambda": 50, "max_depth": 2}
-riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.05, "lambda": 50}
+#outcome_params = {"objective": "reg:squarederror", "eval_metric": "rmse", "eta": 0.05, "lambda": 100, "max_depth": 2}
+#propensity_params = {"objective": "binary:logistic", "eval_metric": "logloss", "eta": 0.3, "lambda": 50, "max_depth": 2}
+#riesz_params = {"disable_default_eval_metric": True, "max_depth": 2, "eta": 0.05, "lambda": 50}
+
 
 
 for i in range(iterations):
@@ -35,6 +37,9 @@ for i in range(iterations):
     print(i)
 
     data = Dataset.simulate_dataset(number_of_samples=number_of_samples, number_of_covariates=number_of_covariates)
+    np.random.seed(i)
+    outcome_params, riesz_params, propensity_params = cross_validate(data)
+
     outcome_model = OutcomeXGBModel(outcome_params)
     outcome_model.fit(data)
     outcome_predictions = outcome_model.get_predictions(data)
