@@ -30,45 +30,29 @@ class ModelWrapper:
         train_data, val_data = data.test_train_split(0.8)
         train_treated, train_control = train_data.get_counterfactual_datasets()
         val_treated, val_control = val_data.get_counterfactual_datasets()
-        loader = DataLoader(
-            TensorDataset(
-                train_data.net_input, train_treated.net_input, train_control.net_input, train_data.outcomes_tensor
-            ),
-            batch_size=64,
-            shuffle=True,
-        )
+
         optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=lr)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer,
-            mode="min",
-            factor=0.5,
-            patience=10,
-            threshold=1e-3,
-            threshold_mode="rel",
-            cooldown=2,
-            min_lr=1e-6,
-        )
+
         best = 1e6
         counter = 0
         best_state = copy.deepcopy(self.model.state_dict())
         for epoch in range(1000):
             self.model.train()
-            for x, xt, xc, y in loader:
-                optimizer.zero_grad()
-                actual_riesz = self.model.predict_riesz(x)
-                treated_riesz = self.model.predict_riesz(xt)
-                control_riesz = self.model.predict_riesz(xc)
-                riesz_loss = riesz_criterion(actual_riesz, treated_riesz, control_riesz)
-                base_predictions = self.model.predict_without_correction(x)
-                outcome_loss = outcome_criterion(base_predictions, y)
-                tmle_w_loss = tmle_criterion(self.model.predict_outcome(x), y)
-                l2_penalty = 0.0
-                for name, param in self.model.named_parameters():
-                    if name != "epsilon":
-                        l2_penalty += torch.sum(param**2)
-                loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w + l2_penalty * wd
-                loss.backward()
-                optimizer.step()
+            optimizer.zero_grad()
+            actual_riesz = self.model.predict_riesz(train_data.net_input)
+            treated_riesz = self.model.predict_riesz(train_treated.net_input)
+            control_riesz = self.model.predict_riesz(train_control.net_input)
+            riesz_loss = riesz_criterion(actual_riesz, treated_riesz, control_riesz)
+            base_predictions = self.model.predict_without_correction(train_data.net_input)
+            outcome_loss = outcome_criterion(base_predictions, train_data.outcomes_tensor)
+            tmle_w_loss = tmle_criterion(self.model.predict_outcome(train_data.net_input), train_data.outcomes_tensor)
+            l2_penalty = 0.0
+            for name, param in self.model.named_parameters():
+                if name != "epsilon":
+                    l2_penalty += torch.sum(param**2)
+            loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w + l2_penalty * wd
+            loss.backward()
+            optimizer.step()
             self.model.eval()
             with torch.no_grad():
                 actual_riesz = self.model.predict_riesz(val_data.net_input)
@@ -88,6 +72,7 @@ class ModelWrapper:
             if counter >= patience:
                 break
         self.model.load_state_dict(best_state)
+        print(epoch, self.model.epsilon)
         return best
 
 

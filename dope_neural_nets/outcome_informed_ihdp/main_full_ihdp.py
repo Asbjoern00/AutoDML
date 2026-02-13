@@ -30,11 +30,12 @@ for i in range(1000):
     results.append(result)
     residuals = [np.abs(result["estimate"] - result["truth"]) for result in results]
     MAE = sum(residual for residual in residuals) / len(residuals)
+    MSE = sum(residual**2 for residual in residuals) / len(residuals)
     coverage = sum(result["lower"] <= result["truth"] <= result["upper"] for result in results) / len(results)
-    print(i, data.get_truth(), "Estimate:", result["estimate"], "MAE:", MAE, "Coverage:", coverage)
+    print(i, data.get_truth(), "Estimate:", result["estimate"], "MAE:", MAE, "Coverage:", coverage, 'RMSE', MSE**0.5)
 
 
 import pandas as pd
 
 estimates = pd.DataFrame(results)
-estimates.to_csv("dope_neural_nets/outcome_informed_ihdp/outcome_informed_ihdp_full.csv", index=False)
+estimates.to_csv("dope_neural_nets/outcome_informed_ihdp/tmle0.csv", index=False)
