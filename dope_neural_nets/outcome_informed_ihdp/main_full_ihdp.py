@@ -9,8 +9,7 @@ torch.manual_seed(42)
 def run_experiment(data):
     estimate_components = []
     model_wrapper = ModelWrapper(in_=25, hidden_size=100, n_shared=3, n_not_shared=2)
-    model_wrapper.train_outcome_head(data, train_shared_layers=True, lr=1e-3)
-    model_wrapper.train_riesz_head(data, train_shared_layers=False, lr=1e-3)
+    model_wrapper.train_as_riesz_net(data, lr=1e-3, rr_w=0.1, tmle_w=0, mse_w=1)
     estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()
