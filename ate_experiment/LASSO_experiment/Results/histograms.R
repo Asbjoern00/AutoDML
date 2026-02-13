@@ -116,7 +116,7 @@ d = ggplot(cross_fit_results)+
            size = 4) + 
   annotate("text", 
            x = Inf, y = Inf, 
-           label = paste0("Bias: ", round(b_rmse,5)), 
+           label = paste0("Bias: ", round(d_bias,5)), 
            hjust = 1.1, vjust = 4.2, 
            size = 4) + 
   theme_classic()
