@@ -46,7 +46,7 @@ lasso_ase_cross = read_csv("ate_experiment/LASSO_experiment/results/no_cross_fit
   pivot_longer(cols = -truth,names_to = c("estimator", ".value"),names_sep = "_") %>%
   mutate(type='LASSO ASE', c_fit = '& 5 fold cross-fitting', estimator=ifelse(estimator=='riesz', 'Direct', 'Indirect'))
 
-summary_data
+
 
 truths = tibble(value=c(xg_ase_cross$truth[1], xg_ate_cross$truth[1], lasso_ase_cross$truth[1], lasso_ate_cross$truth[1]), type=c('Gradient boosting ASE', 'Gradient boosting ATE', 'LASSO ASE', 'LASSO ATE'))
 
