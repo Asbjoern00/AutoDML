@@ -97,7 +97,7 @@ class Model(nn.Module):
             self.riesz_base = nn.Sequential(*riesz_base)
 
         self.outcome_layers = BiHead(hidden_size, hidden_size, n_not_shared)
-        self.riesz_layers = Head(hidden_size + 1, 100, 1)
+        self.riesz_layers = Head(hidden_size, 100, 1)
         self.epsilon = torch.nn.Parameter(torch.tensor(0.0))
 
     def predict_outcome(self, x):
@@ -105,15 +105,14 @@ class Model(nn.Module):
 
     def predict_without_correction(self, x):
         treat = x[:, 0].reshape(-1, 1)
-        x = x[:, 1:]
+        # x = x[:, 1:]
         x = self.outcome_base(x)
         return self.outcome_layers(x, treat)
 
     def predict_riesz(self, x):
-        treat = x[:, 0].reshape(-1, 1)
-        x = x[:, 1:]
+        # x = x[:, 1:]
         x = self.riesz_base(x)
-        return self.riesz_layers(x, treat)
+        return self.riesz_layers(x)
 
 
 class RieszLoss(nn.Module):
@@ -146,8 +145,7 @@ class Head(nn.Module):
         super(Head, self).__init__()
         self.layers = nn.Linear(in_, 1)
 
-    def forward(self, x, treat):
-        x = torch.cat((x, treat), dim=1)
+    def forward(self, x):
         return self.layers(x)
 
 
