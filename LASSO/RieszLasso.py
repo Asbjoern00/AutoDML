@@ -88,7 +88,7 @@ class RieszLasso:
                 if cur_loss < best_loss:
                     best_loss = cur_loss
                     best_c1 = c1
-             #   print(c1, cur_loss)
+                print(c1, cur_loss)
             self.fit(data, best_c1)
 
     def get_riesz_representer(self, data):
