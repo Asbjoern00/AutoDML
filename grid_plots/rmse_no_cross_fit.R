@@ -2,7 +2,7 @@ library(tidyverse)
 xg_125_ate_no_cross = read_csv("ate_experiment/gradient_boosting_experiment/results/no_cross_fit_results_125.csv") %>%
   mutate(riesz_residual = (riesz_estimate-truth)^2, propensity_residual = (propensity_estimate-truth)^2) %>%
   summarise(riesz_mse = mean(riesz_residual), riesz_sd = sd(riesz_residual) / sqrt(1000), indirect_mse = mean(propensity_residual), indirect_sd = sd(propensity_residual) / sqrt(1000)) %>%
-  mutate(n = 125, type='Gradient Boosting ATE') %>%
+  mutate(n = 300, type='Gradient Boosting ATE') %>%
   pivot_longer(
     cols = c(riesz_mse, riesz_sd, indirect_mse, indirect_sd),
     names_to = c("estimator", ".value"),
@@ -12,6 +12,24 @@ xg_500_ate_no_cross <- read_csv("ate_experiment/gradient_boosting_experiment/res
   mutate(riesz_residual = (riesz_estimate-truth)^2, propensity_residual = (propensity_estimate-truth)^2) %>%
   summarise(riesz_mse = mean(riesz_residual), riesz_sd = sd(riesz_residual) / sqrt(1000), indirect_mse = mean(propensity_residual), indirect_sd = sd(propensity_residual) / sqrt(1000)) %>%
   mutate(n = 500, type='Gradient Boosting ATE') %>%
+  pivot_longer(
+    cols = c(riesz_mse, riesz_sd, indirect_mse, indirect_sd),
+    names_to = c("estimator", ".value"),
+    names_sep = "_"
+  )
+xg_1000_ate_no_cross <- read_csv("ate_experiment/gradient_boosting_experiment/results/no_cross_fit_results.csv")%>%
+  mutate(riesz_residual = (riesz_estimate-truth)^2, propensity_residual = (propensity_estimate-truth)^2) %>%
+  summarise(riesz_mse = mean(riesz_residual), riesz_sd = sd(riesz_residual) / sqrt(1000), indirect_mse = mean(propensity_residual), indirect_sd = sd(propensity_residual) / sqrt(1000)) %>%
+  mutate(n = 1000, type='Gradient Boosting ATE') %>%
+  pivot_longer(
+    cols = c(riesz_mse, riesz_sd, indirect_mse, indirect_sd),
+    names_to = c("estimator", ".value"),
+    names_sep = "_"
+  )
+xg_1500_ate_no_cross <- read_csv("ate_experiment/gradient_boosting_experiment/results/no_cross_fit_results_1500.csv")%>%
+  mutate(riesz_residual = (riesz_estimate-truth)^2, propensity_residual = (propensity_estimate-truth)^2) %>%
+  summarise(riesz_mse = mean(riesz_residual), riesz_sd = sd(riesz_residual) / sqrt(1000), indirect_mse = mean(propensity_residual), indirect_sd = sd(propensity_residual) / sqrt(1000)) %>%
+  mutate(n = 1500, type='Gradient Boosting ATE') %>%
   pivot_longer(
     cols = c(riesz_mse, riesz_sd, indirect_mse, indirect_sd),
     names_to = c("estimator", ".value"),
@@ -42,6 +60,24 @@ xg_500_ase_no_cross <- read_csv("ase_experiment/gradient_boosting_experiment/res
   mutate(riesz_residual = (riesz_estimate-truth)^2, propensity_residual = (propensity_estimate-truth)^2) %>%
   summarise(riesz_mse = mean(riesz_residual), riesz_sd = sd(riesz_residual) / sqrt(1000), indirect_mse = mean(propensity_residual), indirect_sd = sd(propensity_residual) / sqrt(1000)) %>%
   mutate(n = 500, type='Gradient Boosting ASE') %>%
+  pivot_longer(
+    cols = c(riesz_mse, riesz_sd, indirect_mse, indirect_sd),
+    names_to = c("estimator", ".value"),
+    names_sep = "_"
+  )
+xg_1000_ase_no_cross <- read_csv("ase_experiment/gradient_boosting_experiment/results/no_cross_fit_results.csv")%>%
+  mutate(riesz_residual = (riesz_estimate-truth)^2, propensity_residual = (propensity_estimate-truth)^2) %>%
+  summarise(riesz_mse = mean(riesz_residual), riesz_sd = sd(riesz_residual) / sqrt(1000), indirect_mse = mean(propensity_residual), indirect_sd = sd(propensity_residual) / sqrt(1000)) %>%
+  mutate(n = 1000, type='Gradient Boosting ASE') %>%
+  pivot_longer(
+    cols = c(riesz_mse, riesz_sd, indirect_mse, indirect_sd),
+    names_to = c("estimator", ".value"),
+    names_sep = "_"
+  )
+xg_1500_ase_no_cross <- read_csv("ase_experiment/gradient_boosting_experiment/results/no_cross_fit_results_1500.csv")%>%
+  mutate(riesz_residual = (riesz_estimate-truth)^2, propensity_residual = (propensity_estimate-truth)^2) %>%
+  summarise(riesz_mse = mean(riesz_residual), riesz_sd = sd(riesz_residual) / sqrt(1000), indirect_mse = mean(propensity_residual), indirect_sd = sd(propensity_residual) / sqrt(1000)) %>%
+  mutate(n = 1500, type='Gradient Boosting ASE') %>%
   pivot_longer(
     cols = c(riesz_mse, riesz_sd, indirect_mse, indirect_sd),
     names_to = c("estimator", ".value"),
@@ -116,7 +152,7 @@ lasso_2000_ase_no_cross <- read_csv("ate_experiment/LASSO_experiment/results/no_
   )
 
 
-data = rbind(xg_125_ate_no_cross, xg_500_ate_no_cross, xg_2000_ate_no_cross, xg_125_ase_no_cross, xg_500_ase_no_cross, xg_2000_ase_no_cross,
+data = rbind(xg_125_ate_no_cross, xg_500_ate_no_cross, xg_1000_ate_no_cross, xg_1500_ate_no_cross, xg_2000_ate_no_cross, xg_125_ase_no_cross, xg_500_ase_no_cross, xg_1000_ase_no_cross, xg_1500_ase_no_cross, xg_2000_ase_no_cross,
              lasso_125_ate_no_cross, lasso_500_ate_no_cross, lasso_2000_ate_no_cross, lasso_125_ase_no_cross, lasso_500_ase_no_cross, lasso_2000_ase_no_cross)
 
 data = data %>% mutate(Estimator = ifelse(estimator=='riesz', 'Direct Riesz representer', 'Indirect Riesz representer'))
