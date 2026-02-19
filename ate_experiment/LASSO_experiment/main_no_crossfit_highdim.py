@@ -9,7 +9,7 @@ import pandas as pd
 
 
 def run():
-    ns = [300, 900, 2700]
+    ns = [125, 500, 2000]
     for n in ns:
 
         path = f"ate_experiment/LASSO_experiment/Results/no_cross_fit_results_{n}.csv"
@@ -94,7 +94,7 @@ def run():
                 f"Propensity MSE : {np.mean((est_propensity[:i+1]-truth)**2)}, coverage = {np.mean(covered_propensity[:i+1])}, scaled bias :{np.sqrt(n)*np.mean((est_propensity[:i+1]-truth))}"
             )
 
-            print(i,n)
+            print(i, n)
 
             headers = [
                 "truth",
