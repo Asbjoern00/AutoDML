@@ -106,5 +106,11 @@ ggplot(plot_data) +
   geom_text(
     data = label_data,
     aes(x = x_pos, y = y_pos * 1.1, label = label, color = estimator),
-    hjust = 0, vjust = 1, size = 3, show.legend = FALSE
+    hjust = 0, vjust = 1, size = 4, show.legend = FALSE, size=10
+  )+
+  ggtitle('Confidence intervals at sample size n=500')+
+  ylab('')+
+  theme(
+    axis.ticks.x = element_blank(),    # removes ticks
+    axis.text.x = element_blank(),
   )
