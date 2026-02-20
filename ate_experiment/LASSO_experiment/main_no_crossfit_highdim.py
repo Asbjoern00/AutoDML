@@ -9,7 +9,7 @@ import pandas as pd
 
 
 def run():
-    ns = [125, 500, 2000]
+    ns = [125, 500, 1000, 1500, 2000]
     for n in ns:
 
         path = f"ate_experiment/LASSO_experiment/Results/no_cross_fit_results_{n}.csv"
@@ -35,7 +35,7 @@ def run():
 
         if os.path.exists(path):
             already_run = pd.read_csv(path)
-            n_already_run = np.argmax(already_run["riesz_variance"] == 0)
+            n_already_run = np.sum(already_run["riesz_variance"] > 0)
 
             est_plugin[:n_already_run] = already_run["plugin_estimate"][:n_already_run]
             est_propensity[:n_already_run] = already_run["propensity_estimate"][:n_already_run]

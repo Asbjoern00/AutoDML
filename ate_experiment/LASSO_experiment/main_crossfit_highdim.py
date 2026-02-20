@@ -9,7 +9,7 @@ import pandas as pd
 
 
 def run():
-    ns = [125,500, 2000]
+    ns = [125, 500, 1000, 1500, 2000]
     for n in ns:
         path = f"ate_experiment/LASSO_experiment/Results/cross_fit_results_{n}.csv"
 
@@ -36,7 +36,7 @@ def run():
 
         if os.path.exists(path):
             already_run = pd.read_csv(path)
-            n_already_run = m-np.sum(already_run["riesz_variance"] == 0)
+            n_already_run = m - np.sum(already_run["riesz_variance"] == 0)
 
             est_plugin[:n_already_run] = already_run["plugin_estimate"][:n_already_run]
             est_propensity[:n_already_run] = already_run["propensity_estimate"][:n_already_run]
@@ -84,7 +84,7 @@ def run():
                 eval_data, train_data = data.get_fit_and_train_folds(folds, j)
                 n_eval_data = eval_data.treatments.shape[0]
 
-                lassoR.fit(train_data, cv_riesz_c1s=np.array([5/4, 3 / 4, 2 / 3, 1 / 2]))
+                lassoR.fit(train_data, cv_riesz_c1s=np.array([5 / 4, 3 / 4, 2 / 3, 1 / 2]))
                 lassoP.fit(train_data, fit_outcome_model=False)
 
                 functional_riesz[n_evaluated : n_evaluated + n_eval_data] = lassoR.get_functional(eval_data)
@@ -121,7 +121,7 @@ def run():
             print(
                 f"Propensity MSE : {np.mean((est_propensity[:i+1]-truth)**2)}, coverage = {np.mean(covered_propensity[:i+1])}, scaled bias :{np.sqrt(n)*np.mean((est_propensity[:i+1]-truth)/np.sqrt(var_propensity[:i+1]))}"
             )
-            print(i,n)
+            print(i, n)
 
             headers = [
                 "truth",
@@ -152,7 +152,6 @@ def run():
                     upper_ci_riesz,
                 ]
             ).T
-
 
             np.savetxt(
                 path,
