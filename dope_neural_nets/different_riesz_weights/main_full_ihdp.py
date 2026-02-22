@@ -6,10 +6,13 @@ from dope_neural_nets.dataset import Dataset
 np.random.seed(42)
 torch.manual_seed(42)
 
+tmle_w = 0
+mse_w = 2 - tmle_w
+
 def run_experiment(data):
     estimate_components = []
     model_wrapper = ModelWrapper(in_=26, hidden_size=100, n_shared=3, n_not_shared=2)
-    model_wrapper.train_as_riesz_net(data, lr=1e-3, rr_w=0.1, tmle_w=0, mse_w=1)
+    model_wrapper.train_as_riesz_net(data, lr=1e-3, rr_w=0.1, tmle_w=tmle_w, mse_w=mse_w)
     estimate_components.append(model_wrapper.get_estimate_components(data))
     estimate_components = torch.concat(estimate_components, dim=0)
     estimate = torch.mean(estimate_components).item()
@@ -24,7 +27,7 @@ def run_experiment(data):
 
 
 results = []
-for i in range(50):
+for i in range(1000):
     data = Dataset.load_chernozhukov_replication(i + 1)
     result = run_experiment(data)
     results.append(result)
@@ -38,4 +41,4 @@ for i in range(50):
 import pandas as pd
 
 estimates = pd.DataFrame(results)
-estimates.to_csv("dope_neural_nets/outcome_informed_ihdp/tmle0_full_x.csv", index=False)
+estimates.to_csv(f"dope_neural_nets/different_riesz_weights/tmle{tmle_w}.csv", index=False)
