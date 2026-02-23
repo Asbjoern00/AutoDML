@@ -1,10 +1,25 @@
 library(tidyverse)
+library(latex2exp)
 
 n_intervals <- 100
 
 # Helper function to load a single experiment
 load_ci_data <- function(file_path, type_label, cross_label) {
-  read_csv(file_path, show_col_types = FALSE) %>%
+  df <- read_csv(file_path, show_col_types = FALSE)
+  
+  df <- read_csv(file_path, show_col_types = FALSE)
+  
+  # ---- Handle inconsistent column names ----
+  if ("propensity_estimate" %in% names(df)) {
+    df <- df %>% rename(propensity_estimate = propensity_estimate)
+  } else if (sum(stringr::str_detect("indirect",names(df))) > 0 ) {
+    df <- df %>% rename_with(~gsub("indirect", "propensity",.x))
+  } else {
+    stop(paste("No propensity/indirect column in", file_path))
+  }
+  
+  
+  df %>%
     select(truth, propensity_estimate, riesz_estimate,
            propensity_lower, propensity_upper, riesz_lower, riesz_upper) %>%
     pivot_longer(
@@ -37,19 +52,19 @@ xg_ase_cross <- load_ci_data(
   "Gradient Boosting ASE", "& 5 fold cross-fitting"
 )
 lasso_ate_no_cross <- load_ci_data(
-  "ate_experiment/LASSO_experiment/results/no_cross_fit_results_500.csv",
+  "ate_experiment/LASSO_experiment/Results/no_cross_fit_results_500.csv",
   "LASSO ATE", "& No cross-fitting"
 )
 lasso_ate_cross <- load_ci_data(
-  "ate_experiment/LASSO_experiment/results/cross_fit_results_500.csv",
+  "ate_experiment/LASSO_experiment/Results/cross_fit_results_500.csv",
   "LASSO ATE", "& 5 fold cross-fitting"
 )
 lasso_ase_no_cross <- load_ci_data(
-  "ase_experiment/LASSO_experiment/results/no_cross_fit_results_500.csv",
+  "ase_experiment/LASSO_experiment/Results/no_cross_fit_results_500.csv",
   "LASSO ASE", "& No cross-fitting"
 )
 lasso_ase_cross <- load_ci_data(
-  "ase_experiment/LASSO_experiment/results/cross_fit_results_500.csv",
+  "ase_experiment/LASSO_experiment/Results/cross_fit_results_500.csv",
   "LASSO ASE", "& 5 fold cross-fitting"
 )
 
@@ -98,19 +113,33 @@ label_data <- label_data %>%
   left_join(x_positions, by = c("type", "estimator"))
 
 # Plot
+truth_data <- unique(plot_data[, c("type", "truth")])
+
 ggplot(plot_data) +
   geom_linerange(aes(x = seq_along(lower), ymin = lower, ymax = upper, color = Estimator)) +
+  geom_hline(
+    data = truth_data,
+    aes(yintercept = truth),
+    linetype = "dashed",
+    linewidth = 0.3
+  ) + 
   theme_classic() +
   xlab('') +
   facet_wrap(~type, scales = "free") +
   geom_text(
     data = label_data,
     aes(x = x_pos, y = y_pos * 1.1, label = label, color = estimator),
-    hjust = 0, vjust = 1, size = 4, show.legend = FALSE, size=10
+    hjust = 0, vjust = 1, size = 5, show.legend = FALSE, size=10
   )+
-  ggtitle('Confidence intervals at sample size n=500')+
+  ggtitle(TeX('Confidence intervals at sample size $n=500$'))+
   ylab('')+
   theme(
     axis.ticks.x = element_blank(),    # removes ticks
     axis.text.x = element_blank(),
+    plot.title   = element_text(size = 16, hjust = 0.5),
+    axis.title   = element_text(size = 16),
+    axis.text    = element_text(size = 14),
+    strip.text   = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text  = element_text(size = 12)
   )

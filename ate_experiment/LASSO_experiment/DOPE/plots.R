@@ -14,12 +14,21 @@ df %>%
       x = Estimator,
       y = Inf,
       label = sprintf(
-        "Bias = %.3f\nVariance = %.3f\nRMSE = %.3f",
-        Bias, Variance, RMSE
+        "Bias = %.3f\nRMSE = %.3f",
+        Bias, RMSE
       )
     ),
     vjust = 1.1,
-    size = 4
+    size = 5
   )+
   ylim(0.4,1.7)+
-  theme_bw() 
+  theme_classic()  + 
+  ggtitle("Distribution of estimators for different methods") + 
+  theme(
+    plot.title   = element_text(size = 16, hjust = 0.5),
+    axis.title   = element_text(size = 16),
+    axis.text    = element_text(size = 14),
+    strip.text   = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text  = element_text(size = 12)
+  )

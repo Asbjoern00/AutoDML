@@ -22,8 +22,12 @@ for(file in res_files){
 }
 
 agg_res <- results  %>% group_by(Informed) %>% 
-  summarise(bias = mean(truth-riesz_estimate), variance = var(riesz_estimate), rmse = sqrt(mean((truth-riesz_estimate)^2)), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
-            est_as_var = mean(riesz_variance), avg_len = mean(riesz_upper-riesz_lower), rmse_plugin = sqrt(mean((truth-plugin_estimate_riesz)^2)))
+  summarise(bias = mean(truth-riesz_estimate), variance = var(riesz_estimate), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
+            mse = mean((truth-riesz_estimate)^2),  var_mse = var((truth-riesz_estimate)^2)) %>% 
+  mutate(rmse = sqrt(mse), var_rmse = 1/(4*mse)*var_mse, rmse_u = rmse + 1.96*sqrt(var_mse/1000), rmse_l = rmse - 1.96*sqrt(var_mse/1000)) 
+              
+              
+              
 
 
 res_weights <- tibble()
@@ -42,10 +46,11 @@ for(file in res_files){
   res$TMLE <- 0
   res_weights <- bind_rows(res,res_weights)
 }
-mask <- 2^seq(-7,0, by = 2)
+mask <- 2^seq(-7,1, by = 2)
 agg_res_w <- res_weights %>% filter(rr_weight %in% mask) %>% group_by(rr_weight,TMLE) %>%
-  summarise(bias = mean(truth-riesz_estimate), variance = mean((riesz_estimate-mean(riesz_estimate))^2), rmse = sqrt(mean((truth-riesz_estimate)^2)), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
-            est_as_var = mean(riesz_variance), avg_len = mean(riesz_upper-riesz_lower)) %>% 
+  summarise(bias = mean(truth-riesz_estimate), variance = var(riesz_estimate), cvg = mean((riesz_upper>truth)*(riesz_lower<truth)),
+            mse = mean((truth-riesz_estimate)^2),  var_mse = var((truth-riesz_estimate)^2)) %>% 
+  mutate(rmse = sqrt(mse), var_rmse = 1/(4*mse)*var_mse, rmse_u = rmse + 1.96*sqrt(var_mse/1000), rmse_l = rmse - 1.96*sqrt(var_mse/1000)) %>% 
   mutate(TMLE = case_when(TMLE == 1 ~ "RieszNet, TMLE weight 1",
                    TRUE ~ "RieszNet, TMLE weight 0"))
 
@@ -57,109 +62,94 @@ tmle_colors <- c(
   "Riesz Informed"   = "#e7298a",
   "Separate Neural Nets" = "#66a61e"
 )
-
-a <- agg_res_w %>% ggplot(aes(x = rr_weight, color = as.factor(TMLE), y = rmse)) + 
-  geom_point() + 
-  geom_line() + 
-  scale_x_continuous(
-    trans = "log2",
-    breaks = mask,
-    labels = function(x) {
-      parse(text = paste0("2^", log2(x)))
-    }
-  ) + 
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Outcome") %>% pull("rmse"),color = "Outcome Informed")) +
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Riesz") %>% pull("rmse"),color = "Riesz Informed")) +
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Separate") %>% pull("rmse"),color = "Separate Neural Nets")) +
-  labs(color = NULL) + 
-  ylab("RMSE") + 
-  xlab("RieszLoss weight") + 
-  theme_bw() 
-
-b <- agg_res_w %>% ggplot(aes(x = rr_weight, color = TMLE, y = bias)) + 
-  geom_point() + 
-  geom_line() + 
-  scale_x_continuous(transform = "log2") +
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Outcome") %>% pull("bias"),color = "Outcome Informed")) +
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Riesz") %>% pull("bias"),color = "Riesz Informed")) +
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Separate") %>% pull("bias"),color = "Separate Neural Nets")) +
-  labs(color = NULL) + 
-  theme_bw()
+linetypes <- c(  "Outcome Informed" = "dashed",
+                 "Riesz Informed"   = "dotted",
+                 "Separate Neural Nets" = "dotdash")
 
 
-c <- agg_res_w %>% ggplot(aes(x = rr_weight, color = TMLE, y = variance)) + 
-  geom_point() + 
-  geom_line() + 
-  scale_x_continuous(transform = "log2") +
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Outcome") %>% pull("variance"),color = "Outcome Informed")) +
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Riesz") %>% pull("variance"),color = "Riesz Informed")) +
-  geom_hline(aes(yintercept = agg_res %>% filter(Informed == "Separate") %>% pull("variance"),color = "Separate Neural Nets")) +
-  labs(color = NULL) + 
-  theme_bw()
-
-
-
-a + b + c
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#agg_res %>% ggplot() + geom_line(aes(x = rr_weight, y = variance, color = "variance")) + geom_line(aes(x= rr_weight, y = bias^2, color = "bias^2")) + scale_x_log10() + theme_bw()
-
-results %>%
-  mutate(normalized = sqrt(1000)*(riesz_estimate-truth)/sqrt(riesz_variance)) %>%
-  ggplot() +
-  geom_histogram(aes(x=normalized, y=after_stat(density)), color='white')+
-  geom_function(fun=function(x) dnorm(x)) +
-  geom_vline(xintercept=0, color='red', size=1) +
-  geom_text(data = agg_res, aes(x = -3.5, y = 0.4, label = paste0( "RMSE: ",as.character(round(rmse,4)))), size = 4) +
-  geom_text(data = agg_res, aes(x = -3.5, y = 0.38, label = paste0( "Bias: ",as.character(round(bias,4)))), size = 4) +
-  geom_text(data = agg_res, aes(x = -3.5, y = 0.36, label = paste0( "Variance: ",as.character(round(variance,4)))), size = 4) +
-  facet_wrap(~Informed) + 
-  #facet_wrap(~rr_weight) +
-  theme_bw() +
-  xlim(-5,5) + 
-  xlab(
-    expression(
-      frac(
-        hat(psi) - psi(P),
-        sqrt(hat(V) / n)
-      )
+hline_df <- agg_res %>%
+  filter(Informed %in% c("Outcome", "Riesz", "Separate")) %>%
+  mutate(
+    label = case_when(
+      Informed == "Outcome"  ~ "Outcome Informed",
+      Informed == "Riesz"    ~ "Riesz Informed",
+      Informed == "Separate" ~ "Separate Neural Nets"
     )
-  )
+  ) %>%
+  select(label, rmse, rmse_l, rmse_u) %>% mutate(rr_weight = 2^(-3))
 
-ymin <- 1.5
-ymax <- 3.2
-
-ggplot(results %>% group_by(Informed) %>% slice_head(n=100))+
-  geom_segment(aes(x=index, y=pmax(riesz_lower,ymin),xend=index, yend=pmin(riesz_upper,ymax), color = as.factor(riesz_coverage)))+
-  geom_point(aes(x=index, y=riesz_estimate))+
-  geom_text(data = agg_res, aes(x = 50, y = 3.2, label = paste0( "Coverage: ",as.character(round(cvg,4)))), size = 4) +
-  geom_text(data = agg_res, aes(x = 50, y = 3.1, label = paste0( "Avg. length: ",as.character(round(avg_len,4)))), size = 4) +
-  facet_wrap(~Informed) + 
-  theme_bw()+
-  scale_color_manual(                      
-    values = c('FALSE' = "red", "TRUE" = "black"),
-    name = "Coverage",
-    labels = c("Missed", "Covered")
+a <- agg_res_w %>% 
+    ggplot(aes(x = rr_weight, y = rmse, color = as.factor(TMLE))) + 
+    
+    geom_point(size = 3) + 
+    
+    #geom_line(linetype = "dashed") + 
+    
+    geom_errorbar(
+      aes(ymin = rmse_l, ymax = rmse_u),
+      width = 0.35,
+    ) +
+    
+    # Horizontal point estimates
+    geom_hline(
+      data = hline_df,
+      aes(
+        yintercept = rmse,
+        color = label
+      ),
+      linewidth = 1
+    ) +
+  geom_hline(
+    data = hline_df,
+    aes(
+      yintercept = rmse_u,
+      color = label,
+      linetype = paste0(label, " (CI)")
+    ),
+    linewidth = 1
+  ) +
+  geom_hline(
+    data = hline_df,
+    aes(
+      yintercept = rmse_l,
+      color = label,
+      linetype = paste0(label, " (CI)")
+    ),
+    linewidth = 1
   )+
-  geom_hline(yintercept = results$truth[1],color='blue')+
-  ylab('Point estimate and CI')+
-  ylim(ymin,ymax)
+    
+    scale_color_manual(values = tmle_colors) +
+    scale_fill_manual(values = tmle_colors) +
+  scale_linetype_manual(
+    values = c(
+      "Outcome Informed (CI)" = "dashed",
+      "Riesz Informed (CI)"   = "dotted",
+      "Separate Neural Nets (CI)" = "dotdash"
+    )
+  ) + 
+    
+    scale_x_continuous(
+      trans = "log2",
+      breaks = mask,
+      labels = function(x) {
+        parse(text = paste0("2^", log2(x)))
+      }
+    ) + 
+    
+    labs(color = NULL, fill = NULL) + 
+    ylab("RMSE") + 
+    xlab("Weight on Riesz loss") + 
+  theme_classic() + 
+      theme(
+      plot.title   = element_text(size = 16, hjust = 0.5),
+      axis.title   = element_text(size = 16),
+      axis.text    = element_text(size = 14),
+      strip.text   = element_text(size = 14),
+      legend.title = element_blank(),
+      legend.text  = element_text(size = 14)
+    ) + 
+    ggtitle("RMSE for varying weights on Riesz loss") + 
+     ylim(0.10, 0.75)
 
-
-
-
-
-
+  
+a
