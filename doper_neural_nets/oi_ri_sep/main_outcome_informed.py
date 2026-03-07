@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from doper_neural_nets.oi_ri_sep.model import ModelWrapper
+from doper_neural_nets.model import ModelWrapper
 from doper_neural_nets.dataset import Dataset
 
 
