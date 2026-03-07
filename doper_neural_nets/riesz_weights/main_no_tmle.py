@@ -3,8 +3,6 @@ import numpy as np
 from doper_neural_nets.riesznet_model import ModelWrapper
 from doper_neural_nets.dataset import Dataset
 
-np.random.seed(42)
-torch.manual_seed(42)
 
 rr_w = 0.1
 
@@ -25,6 +23,8 @@ def run_experiment(data):
 
 results = []
 for i in range(1000):
+    np.random.seed(i)
+    torch.manual_seed(i)
     data = Dataset.load_chernozhukov_replication(i + 1)
     result = run_experiment(data)
     results.append(result)
