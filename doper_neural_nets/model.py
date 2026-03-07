@@ -91,7 +91,6 @@ class ModelWrapper:
             if counter >= patience:
                 break
         self.model.load_state_dict(best_state)
-        print(epoch, self.model.epsilon)
         return best
 
     def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=30):
