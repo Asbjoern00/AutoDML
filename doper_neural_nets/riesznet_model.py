@@ -18,7 +18,7 @@ class ModelWrapper:
         riesz = self.model.predict_riesz(data.net_input)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
-    def train_as_riesz_net(self, data: Dataset, rr_w, tmle_w, mse_w, lr, wd, patience=30):
+    def train_as_riesz_net(self, data: Dataset, rr_w, tmle_w, mse_w, lr, wd, patience=20):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = True
