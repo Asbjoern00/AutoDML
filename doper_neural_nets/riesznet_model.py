@@ -31,7 +31,24 @@ class ModelWrapper:
         train_treated, train_control = train_data.get_counterfactual_datasets()
         val_treated, val_control = val_data.get_counterfactual_datasets()
 
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=lr)
+        decay_params = []
+        no_decay_params = []
+
+        for name, param in self.model.named_parameters():
+            if not param.requires_grad:
+                continue
+            if name == "epsilon":
+                no_decay_params.append(param)
+            else:
+                decay_params.append(param)
+
+        optimizer = torch.optim.Adam(
+            [
+                {"params": decay_params, "weight_decay": wd},
+                {"params": no_decay_params, "weight_decay": 0.0},
+            ],
+            lr=lr,
+        )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
             mode="min",
@@ -64,11 +81,7 @@ class ModelWrapper:
                 base_predictions = self.model.predict_without_correction(x)
                 outcome_loss = outcome_criterion(base_predictions, y)
                 tmle_w_loss = tmle_criterion(self.model.predict_outcome(x), y)
-                l2_penalty = 0.0
-                for name, param in self.model.named_parameters():
-                    if name != "epsilon":
-                        l2_penalty += torch.sum(param**2)
-                loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w + l2_penalty * wd
+                loss = riesz_loss * rr_w + outcome_loss * mse_w + tmle_w_loss * tmle_w
                 loss.backward()
                 optimizer.step()
             self.model.eval()
