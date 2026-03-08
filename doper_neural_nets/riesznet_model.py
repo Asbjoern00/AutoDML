@@ -63,7 +63,7 @@ class ModelWrapper:
             TensorDataset(
                 train_data.net_input, train_treated.net_input, train_control.net_input, train_data.outcomes_tensor
             ),
-            batch_size=64,
+            batch_size=150,
             shuffle=True,
         )
 

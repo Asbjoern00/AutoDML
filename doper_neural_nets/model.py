@@ -32,7 +32,7 @@ class ModelWrapper:
         train_data, val_data = data.test_train_split(0.8)
         criterion = nn.MSELoss()
         loader = DataLoader(
-            TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=64, shuffle=True
+            TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=150, shuffle=True
         )
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
@@ -90,7 +90,7 @@ class ModelWrapper:
         val_treated, val_control = val_data.get_counterfactual_datasets()
         loader = DataLoader(
             TensorDataset(train_data.net_input, train_treated.net_input, train_control.net_input),
-            batch_size=64,
+            batch_size=150,
             shuffle=True,
         )
         optimizer = torch.optim.Adam(
