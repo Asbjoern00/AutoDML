@@ -1,5 +1,5 @@
 import numpy as np
-import xgboost as xgb
+from functools import cached_property
 import torch
 
 
@@ -14,28 +14,8 @@ class Dataset:
             covariate_columns = [i for i in range(raw_data.shape[1]) if i not in [outcome_column, treatment_column]]
         self.covariate_columns = covariate_columns
 
-    @classmethod
-    def from_csv(cls, path):
-        data = np.loadtxt(path)
-        return cls(
-            raw_data=data,
-            treatment_column=0,
-            outcome_column=1,
-            covariate_columns=[i + 5 for i in range(25)],
-        )
-
     def get_truth(self):
         return np.mean(self.raw_data[:, 4] - self.raw_data[:, 3])
-
-    @classmethod
-    def load_chernozhukov_replication(cls, index):
-        path = "ihdp_average_treatment_effect/data/chernozhukov_ihdp_data/ihdp_" + str(index) + ".csv"
-        return cls.from_csv(path)
-
-    @classmethod
-    def load_redrawn_t_replication(cls, index):
-        path = "ihdp_average_treatment_effect/data/redrawn_t/ihdp_" + str(index) + ".csv"
-        return cls.from_csv(path)
 
     @classmethod
     def get_fit_and_train_folds(cls, folds, fit_index):
@@ -127,7 +107,7 @@ class Dataset:
     def covariates(self):
         return self.raw_data[:, self.covariate_columns]
 
-    @property
+    @cached_property
     def outcomes_tensor(self):
         outcomes = self.outcomes.astype(np.float32)
         return torch.from_numpy(outcomes).reshape(-1, 1)
@@ -142,24 +122,10 @@ class Dataset:
         covariates = self.covariates.astype(np.float32)
         return torch.from_numpy(covariates)
 
-    @property
+    @cached_property
     def net_input(self):
         return torch.from_numpy(self.raw_data[:, [self.treatment_column] + self.covariate_columns].astype(np.float32))
 
-    @property
-    def xgb_dataset(self):
-        return xgb.DMatrix(self.raw_data[:, [self.treatment_column] + self.covariate_columns], label=self.outcomes)
-
-    @property
-    def xgb_propensity_dataset(self):
-        return xgb.DMatrix(self.covariates, label=self.treatments)
-
-    @property
-    def xgb_riesz_dataset(self):
-        treated_dataset, control_dataset = self.get_counterfactual_datasets()
-        data = self.join_datasets([self, treated_dataset, control_dataset])
-        labels = [2] * self.raw_data.shape[0] + [1] * self.raw_data.shape[0] + [0] * self.raw_data.shape[0]
-        return xgb.DMatrix(data.raw_data[:, [self.treatment_column] + self.covariate_columns], label=np.array(labels))
 
     def get_counterfactual_datasets(self):
         treated_raw_data = self.raw_data.copy()
