@@ -5,7 +5,7 @@ from doper_neural_nets.var_gap.dataset import Dataset
 
 n = 10000
 p = 2
-
+beta = 2
 
 def run_experiment(data):
     fit, est = data.test_train_split(0.5)
@@ -41,4 +41,4 @@ for i in range(1000):
 import pandas as pd
 
 estimates = pd.DataFrame(results)
-estimates.to_csv("doper_neural_nets/var_gap/outcome_informed.csv", index=False)
+estimates.to_csv(f"doper_neural_nets/var_gap/outcome_informed_{beta}.csv", index=False)
