@@ -10,8 +10,8 @@ p = 2
 def run_experiment(data):
     fit, est = data.test_train_split(0.5)
     model_wrapper = ModelWrapper(in_=p, hidden_size=100, n_shared=3, n_not_shared=2, type_="separate_nets")
-    model_wrapper.train_outcome_head(fit, lr=1e-3,train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=1000)
-    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=1000)
+    model_wrapper.train_outcome_head(fit, lr=1e-3,train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=250)
+    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=250)
     estimate_components = model_wrapper.get_estimate_components(est)
     estimate = torch.mean(estimate_components).item()
     variance = torch.var(estimate_components).item()
