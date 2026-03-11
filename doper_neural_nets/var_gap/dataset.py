@@ -64,9 +64,9 @@ class Dataset:
         return cls(raw_data, datasets[0].outcome_column, datasets[0].treatment_column, datasets[0].covariate_columns)
 
     @classmethod
-    def simulate_dataset(cls, number_of_samples, number_of_covariates):
+    def simulate_dataset(cls, number_of_samples, number_of_covariates, beta=2):
         covariates = np.random.normal(loc=0, scale=1, size=(number_of_samples, number_of_covariates))
-        propensities = cls.propensity_score(covariates)
+        propensities = cls.propensity_score(covariates, beta)
         treatments = np.random.binomial(1, propensities, size=number_of_samples)
         noise = np.random.normal(loc=0, scale=1, size=number_of_samples)
         outcomes = cls.outcome_regression(covariates, treatments) + noise
@@ -78,8 +78,7 @@ class Dataset:
         return covariates[:, 0] + treatments
 
     @staticmethod
-    def propensity_score(covariates):
-        beta = 2
+    def propensity_score(covariates, beta):
         logit = beta * covariates[:, 1]
         return 1 / (1 + np.exp(-logit))
 
@@ -128,8 +127,11 @@ class Dataset:
         Y = self.outcome_regression(self.covariates, self.treatments)
         Y0 = self.outcome_regression(self.covariates, np.zeros_like(self.treatments))
         Y1 = self.outcome_regression(self.covariates, np.ones_like(self.treatments))
-        pi = self.propensity_score(self.covariates)
+        pi = self.propensity_score(self.covariates, 2)
         rr = self.treatments / pi + (1 - self.treatments) / (1 - pi)
+        rr0 = -1 / (1 - pi)
+        rr1 = 1 / pi
+        rr_loss = np.mean(rr**2 - 2 * (rr1 - rr0))
         truth = np.mean(Y1 - Y0)
         inf_func = Y1 - Y0 + rr * (self.outcomes - Y) - truth
         var = np.mean(np.square(inf_func))
@@ -137,4 +139,6 @@ class Dataset:
         inf_reduced = Y1 - Y0 + 2 * (self.outcomes - Y) - truth
         var_reduced = np.mean(np.square(inf_reduced))
 
-        print(truth, var, var_reduced)
+        print(truth, var, var_reduced, rr_loss)
+
+
