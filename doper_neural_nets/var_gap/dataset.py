@@ -15,7 +15,7 @@ class Dataset:
         self.covariate_columns = covariate_columns
 
     def get_truth(self):
-        return np.mean(self.raw_data[:, 4] - self.raw_data[:, 3])
+        return 1
 
     @classmethod
     def get_fit_and_train_folds(cls, folds, fit_index):
@@ -65,8 +65,7 @@ class Dataset:
 
     @classmethod
     def simulate_dataset(cls, number_of_samples, number_of_covariates):
-        assert number_of_covariates >= 8
-        covariates = np.random.uniform(low=0, high=1, size=(number_of_samples, number_of_covariates))
+        covariates = np.random.normal(loc=0, scale=1, size=(number_of_samples, number_of_covariates))
         propensities = cls.propensity_score(covariates)
         treatments = np.random.binomial(1, propensities, size=number_of_samples)
         noise = np.random.normal(loc=0, scale=1, size=number_of_samples)
@@ -76,23 +75,12 @@ class Dataset:
 
     @staticmethod
     def outcome_regression(covariates, treatments):
-        X0 = covariates[:, 0]
-        X1 = covariates[:, 1]
-        X2 = covariates[:, 2]
-        X3 = covariates[:, 3]
-        X4 = covariates[:, 4]
-        X5 = covariates[:, 5]
-        treated_regression = X0 + X1**2 + X2 + np.sin(X3 * 3.14) + np.exp(X3 * X4)
-        control_regression = X0 + X1**2 + X2**2 + np.cos(X5 * 3.14)
-        return treatments * treated_regression + (1 - treatments) * control_regression
+        return covariates[:, 0] + treatments
 
     @staticmethod
     def propensity_score(covariates):
-        X4 = covariates[:, 4]
-        X5 = covariates[:, 5]
-        X6 = covariates[:, 6]
-        X7 = covariates[:, 7]
-        logit = X4 + np.cos(X5 * 3.14) - np.cos(X6 * 3.14) + -X4 * X7 - 1.5
+        beta = 2
+        logit = beta * covariates[:, 1]
         return 1 / (1 + np.exp(-logit))
 
     @property
@@ -126,7 +114,6 @@ class Dataset:
     def net_input(self):
         return torch.from_numpy(self.raw_data[:, [self.treatment_column] + self.covariate_columns].astype(np.float32))
 
-
     def get_counterfactual_datasets(self):
         treated_raw_data = self.raw_data.copy()
         treated_raw_data[:, self.treatment_column] = np.ones_like(treated_raw_data[:, self.treatment_column])
@@ -136,3 +123,18 @@ class Dataset:
             Dataset(treated_raw_data, self.outcome_column, self.treatment_column, self.covariate_columns),
             Dataset(control_raw_data, self.outcome_column, self.treatment_column, self.covariate_columns),
         )
+
+    def get_diagnostics(self):
+        Y = self.outcome_regression(self.covariates, self.treatments)
+        Y0 = self.outcome_regression(self.covariates, np.zeros_like(self.treatments))
+        Y1 = self.outcome_regression(self.covariates, np.ones_like(self.treatments))
+        pi = self.propensity_score(self.covariates)
+        rr = self.treatments / pi + (1 - self.treatments) / (1 - pi)
+        truth = np.mean(Y1 - Y0)
+        inf_func = Y1 - Y0 + rr * (self.outcomes - Y) - truth
+        var = np.mean(np.square(inf_func))
+
+        inf_reduced = Y1 - Y0 + 2 * (self.outcomes - Y) - truth
+        var_reduced = np.mean(np.square(inf_reduced))
+
+        print(truth, var, var_reduced)

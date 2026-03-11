@@ -18,9 +18,7 @@ class ModelWrapper:
         riesz = self.model.predict_riesz(data.net_input)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
-
-
-    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20):
+    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20, epochs=1000):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -52,17 +50,17 @@ class ModelWrapper:
         best = 1e6
         counter = 0
         best_state = copy.deepcopy(self.model.state_dict())
-        for epoch in range(1000):
+        for epoch in range(epochs):
             self.model.train()
             for x, y in loader:
                 optimizer.zero_grad()
-                predictions = self.model.predict_without_correction(x)
+                predictions = self.model.predict_outcome(x)
                 loss = criterion(predictions, y)
                 loss.backward()
                 optimizer.step()
             self.model.eval()
             with torch.no_grad():
-                predictions = self.model.predict_without_correction(val_data.net_input)
+                predictions = self.model.predict_outcome(val_data.net_input)
                 test_loss = criterion(predictions, val_data.outcomes_tensor)
                 scheduler.step(test_loss)
             if test_loss.item() < best:
@@ -75,7 +73,7 @@ class ModelWrapper:
                 break
         self.model.load_state_dict(best_state)
 
-    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=30):
+    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=20, epochs=1000, wd=1e-3):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -96,7 +94,7 @@ class ModelWrapper:
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
             lr=lr,
-            weight_decay=1e-3,
+            weight_decay=wd,
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
@@ -111,7 +109,7 @@ class ModelWrapper:
         best = 1e6
         best_state = copy.deepcopy(self.model.state_dict())
         counter = 0
-        for epoch in range(1000):
+        for epoch in range(epochs):
             self.model.train()
             for x, xt, xc in loader:
                 optimizer.zero_grad()
@@ -159,14 +157,10 @@ class Model(nn.Module):
                 riesz_base.append(HiddenLayer(hidden_size, hidden_size))
             self.riesz_base = nn.Sequential(*riesz_base)
 
-        self.outcome_layers = BiHead(hidden_size, hidden_size, n_not_shared)
+        self.outcome_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
         self.riesz_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
-        self.epsilon = torch.nn.Parameter(torch.tensor(0.0))
 
     def predict_outcome(self, x):
-        return self.predict_without_correction(x) + self.epsilon * self.predict_riesz(x)
-
-    def predict_without_correction(self, x):
         treat = x[:, 0].reshape(-1, 1)
         x = x[:, 1:]
         x = self.outcome_base(x)
@@ -228,3 +222,4 @@ class HiddenLayer(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
+
