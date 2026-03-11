@@ -18,7 +18,7 @@ class ModelWrapper:
         riesz = self.model.predict_riesz(data.net_input)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
-    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20, epochs=1000):
+    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20, epochs=1000, l1 = 0):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -55,7 +55,10 @@ class ModelWrapper:
             for x, y in loader:
                 optimizer.zero_grad()
                 predictions = self.model.predict_outcome(x)
-                loss = criterion(predictions, y)
+                W = self.model.outcome_base.lasso_layer.weight
+                neuron_l2 = torch.norm(W, dim=1)
+                group_lasso_loss = l1 * torch.sum(neuron_l2)
+                loss = criterion(predictions, y) + group_lasso_loss
                 loss.backward()
                 optimizer.step()
             self.model.eval()
@@ -141,21 +144,12 @@ class Model(nn.Module):
     def __init__(self, in_, hidden_size, type_, n_shared, n_not_shared):
         super(Model, self).__init__()
         if type_ == "shared_base":
-            shared_layers = [HiddenLayer(in_, hidden_size)]
-            for i in range(n_shared - 1):
-                shared_layers.append(HiddenLayer(hidden_size, hidden_size))
-            shared_layers = nn.Sequential(*shared_layers)
+            shared_layers = SharedLayers(in_, hidden_size, n_shared)
             self.outcome_base = shared_layers
             self.riesz_base = shared_layers
         elif type_ == "separate_nets":
-            outcome_base = [HiddenLayer(in_, hidden_size)]
-            for i in range(n_shared - 1):
-                outcome_base.append(HiddenLayer(hidden_size, hidden_size))
-            self.outcome_base = nn.Sequential(*outcome_base)
-            riesz_base = [HiddenLayer(in_, hidden_size)]
-            for i in range(n_shared - 1):
-                riesz_base.append(HiddenLayer(hidden_size, hidden_size))
-            self.riesz_base = nn.Sequential(*riesz_base)
+            self.outcome_base = SharedLayers(in_, hidden_size, n_shared)
+            self.riesz_base = SharedLayers(in_, hidden_size, n_shared)
 
         self.outcome_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
         self.riesz_layers = Head(hidden_size + 1, hidden_size, n_not_shared)
@@ -223,3 +217,16 @@ class HiddenLayer(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
+
+class SharedLayers(nn.Module):
+    def __init__(self, in_, hidden_size, n_shared):
+        super(SharedLayers, self).__init__()
+        shared_layers = [HiddenLayer(in_, hidden_size)]
+        for i in range(n_shared - 1):
+            shared_layers.append(HiddenLayer(hidden_size, hidden_size))
+        self.shared_layers = nn.Sequential(*shared_layers)
+        self.lasso_layer = nn.Linear(hidden_size, hidden_size)
+
+    def forward(self, x):
+        x = self.shared_layers(x)
+        return self.lasso_layer(x)

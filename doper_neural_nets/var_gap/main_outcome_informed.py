@@ -9,8 +9,8 @@ p = 2
 
 def run_experiment(data):
     model_wrapper = ModelWrapper(in_=p, hidden_size=100, n_shared=1, n_not_shared=2)
-    model_wrapper.train_outcome_head(data, lr=1e-3, train_shared_layers=True, epochs=100, wd=0.1)
-    model_wrapper.train_riesz_head(data, lr=1e-3, train_shared_layers=False, epochs=100, wd=0.1)
+    model_wrapper.train_outcome_head(data, lr=1e-3, train_shared_layers=True, epochs=250, wd=0.01, l1=0.1)
+    model_wrapper.train_riesz_head(data, lr=1e-3, train_shared_layers=False, epochs=250, wd=0.01)
     estimate_components = model_wrapper.get_estimate_components(data)
     estimate = torch.mean(estimate_components).item()
     variance = torch.var(estimate_components).item()
