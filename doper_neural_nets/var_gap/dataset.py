@@ -130,6 +130,9 @@ class Dataset:
         Y1 = self.outcome_regression(self.covariates, np.ones_like(self.treatments))
         pi = self.propensity_score(self.covariates)
         rr = self.treatments / pi + (1 - self.treatments) / (1 - pi)
+        rr0 = -1 / (1 - pi)
+        rr1 = 1 / pi
+        rr_loss = np.mean(rr**2 - 2 * (rr1 - rr0))
         truth = np.mean(Y1 - Y0)
         inf_func = Y1 - Y0 + rr * (self.outcomes - Y) - truth
         var = np.mean(np.square(inf_func))
@@ -137,4 +140,6 @@ class Dataset:
         inf_reduced = Y1 - Y0 + 2 * (self.outcomes - Y) - truth
         var_reduced = np.mean(np.square(inf_reduced))
 
-        print(truth, var, var_reduced)
+        print(truth, var, var_reduced, rr_loss)
+
+

@@ -73,7 +73,9 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print("Outcome", epoch, best)
                 break
+        #print(neuron_l2)
         self.model.load_state_dict(best_state)
 
     def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=20, epochs=1000, wd=1e-3):
@@ -91,7 +93,7 @@ class ModelWrapper:
         val_treated, val_control = val_data.get_counterfactual_datasets()
         loader = DataLoader(
             TensorDataset(train_data.net_input, train_treated.net_input, train_control.net_input),
-            batch_size=64,
+            batch_size=1000,
             shuffle=True,
         )
         optimizer = torch.optim.Adam(
@@ -136,6 +138,7 @@ class ModelWrapper:
             else:
                 counter += 1
             if counter >= patience:
+                print("Riesz", epoch, best)
                 break
         self.model.load_state_dict(best_state)
 
