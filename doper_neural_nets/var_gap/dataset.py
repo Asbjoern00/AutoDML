@@ -64,7 +64,7 @@ class Dataset:
         return cls(raw_data, datasets[0].outcome_column, datasets[0].treatment_column, datasets[0].covariate_columns)
 
     @classmethod
-    def simulate_dataset(cls, number_of_samples, number_of_covariates, beta=2):
+    def simulate_dataset(cls, number_of_samples, number_of_covariates, beta):
         covariates = np.random.normal(loc=0, scale=1, size=(number_of_samples, number_of_covariates))
         propensities = cls.propensity_score(covariates, beta)
         treatments = np.random.binomial(1, propensities, size=number_of_samples)
