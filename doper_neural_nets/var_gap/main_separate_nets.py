@@ -7,10 +7,15 @@ n = 10000
 p = 2
 beta = 2
 
+import pandas as pd
+
+output_file = f"doper_neural_nets/var_gap/separate_nets_{beta}.csv"
+
+
 def run_experiment(data):
     fit, est = data.test_train_split(0.5)
     model_wrapper = ModelWrapper(in_=p, hidden_size=100, n_shared=3, n_not_shared=2, type_="separate_nets")
-    model_wrapper.train_outcome_head(fit, lr=1e-3,train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=64)
+    model_wrapper.train_outcome_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=64)
     model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=1000)
     estimate_components = model_wrapper.get_estimate_components(est)
     estimate = torch.mean(estimate_components).item()
@@ -37,8 +42,5 @@ for i in range(1000):
     coverage = sum(result["lower"] <= result["truth"] <= result["upper"] for result in results) / len(results)
     print(i, "nMSE", MSE * n / 2)
 
-
-import pandas as pd
-
-estimates = pd.DataFrame(results)
-estimates.to_csv(f"doper_neural_nets/var_gap/separate_nets_{beta}.csv", index=False)
+    df = pd.DataFrame([result])
+    df.to_csv(output_file, mode="a", header=not pd.io.common.file_exists(output_file), index=False)
