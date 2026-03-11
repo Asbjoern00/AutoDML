@@ -76,7 +76,7 @@ class ModelWrapper:
             if counter >= patience:
                 print("Outcome", epoch, best)
                 break
-        print(neuron_l2)
+        #print(neuron_l2)
         self.model.load_state_dict(best_state)
 
     def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=20, epochs=1000, wd=1e-3, batch_size=100):
