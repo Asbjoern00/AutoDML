@@ -18,7 +18,8 @@ class ModelWrapper:
         riesz = self.model.predict_riesz(data.net_input)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
-    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20, epochs=1000, l1 = 0):
+    def train_outcome_head(self, data: Dataset, train_shared_layers, lr=1e-3, wd=1e-3, patience=20, epochs=1000, l1 = 0,
+                           batch_size=100):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -30,7 +31,7 @@ class ModelWrapper:
         train_data, val_data = data.test_train_split(0.8)
         criterion = nn.MSELoss()
         loader = DataLoader(
-            TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=64, shuffle=True
+            TensorDataset(train_data.net_input, train_data.outcomes_tensor), batch_size=batch_size, shuffle=True
         )
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
@@ -75,10 +76,10 @@ class ModelWrapper:
             if counter >= patience:
                 print("Outcome", epoch, best)
                 break
-        #print(neuron_l2)
+        print(neuron_l2)
         self.model.load_state_dict(best_state)
 
-    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=20, epochs=1000, wd=1e-3):
+    def train_riesz_head(self, data: Dataset, train_shared_layers, lr=1e-3, patience=20, epochs=1000, wd=1e-3, batch_size=100):
         self.model.train()
         for param in self.model.parameters():
             param.requires_grad = False
@@ -93,7 +94,7 @@ class ModelWrapper:
         val_treated, val_control = val_data.get_counterfactual_datasets()
         loader = DataLoader(
             TensorDataset(train_data.net_input, train_treated.net_input, train_control.net_input),
-            batch_size=1000,
+            batch_size=batch_size,
             shuffle=True,
         )
         optimizer = torch.optim.Adam(

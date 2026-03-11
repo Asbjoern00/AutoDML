@@ -3,15 +3,16 @@ import numpy as np
 from doper_neural_nets.var_gap.model import ModelWrapper
 from doper_neural_nets.var_gap.dataset import Dataset
 
-n = 300
+n = 10000
 p = 2
 
 
 def run_experiment(data):
-    model_wrapper = ModelWrapper(in_=p, hidden_size=100, n_shared=1, n_not_shared=2, type_="separate_nets")
-    model_wrapper.train_riesz_head(data, lr=1e-3, train_shared_layers=True, epochs=100, wd=0.1)
-    model_wrapper.train_outcome_head(data, lr=1e-3,train_shared_layers=True, epochs=100, wd=0.1)
-    estimate_components = model_wrapper.get_estimate_components(data)
+    fit, est = data.test_train_split(0.5)
+    model_wrapper = ModelWrapper(in_=p, hidden_size=100, n_shared=3, n_not_shared=2, type_="separate_nets")
+    model_wrapper.train_outcome_head(fit, lr=1e-3,train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=1000)
+    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=1000)
+    estimate_components = model_wrapper.get_estimate_components(est)
     estimate = torch.mean(estimate_components).item()
     variance = torch.var(estimate_components).item()
     return {
@@ -34,7 +35,7 @@ for i in range(1000):
     MAE = sum(residual for residual in residuals) / len(residuals)
     MSE = sum(residual**2 for residual in residuals) / len(residuals)
     coverage = sum(result["lower"] <= result["truth"] <= result["upper"] for result in results) / len(results)
-    print(i, "nMSE", MSE * n)
+    print(i, "nMSE", MSE * n / 2)
 
 
 import pandas as pd
