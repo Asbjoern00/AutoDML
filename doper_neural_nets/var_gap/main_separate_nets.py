@@ -3,14 +3,14 @@ import numpy as np
 from doper_neural_nets.var_gap.model import ModelWrapper
 from doper_neural_nets.var_gap.dataset import Dataset
 
-n = 1000
+n = 300
 p = 2
 
 
 def run_experiment(data):
     model_wrapper = ModelWrapper(in_=p, hidden_size=100, n_shared=1, n_not_shared=2, type_="separate_nets")
-    model_wrapper.train_riesz_head(data, lr=1e-3, train_shared_layers=True, epochs=250, wd=0.01)
-    model_wrapper.train_outcome_head(data, lr=1e-3,train_shared_layers=True, epochs=250, wd=0.01)
+    model_wrapper.train_riesz_head(data, lr=1e-3, train_shared_layers=True, epochs=100, wd=0.1)
+    model_wrapper.train_outcome_head(data, lr=1e-3,train_shared_layers=True, epochs=100, wd=0.1)
     estimate_components = model_wrapper.get_estimate_components(data)
     estimate = torch.mean(estimate_components).item()
     variance = torch.var(estimate_components).item()

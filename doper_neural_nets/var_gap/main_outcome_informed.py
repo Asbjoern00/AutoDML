@@ -3,7 +3,7 @@ import numpy as np
 from doper_neural_nets.var_gap.model import ModelWrapper
 from doper_neural_nets.var_gap.dataset import Dataset
 
-n = 1000
+n = 300
 p = 2
 
 
