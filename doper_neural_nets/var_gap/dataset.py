@@ -79,8 +79,9 @@ class Dataset:
 
     @staticmethod
     def propensity_score(covariates, beta):
-        logit = beta * covariates[:, 1]
-        return 1 / (1 + np.exp(-logit))
+        p1 = (covariates[:, 1] < 0) * beta + (covariates[:, 1] > 0) * (1 - beta)
+        p2 = 1 / (1 + np.exp(-covariates[:, 1]))
+        return 1/2 * (p1 + p2)
 
     @property
     def outcomes(self):
@@ -141,4 +142,4 @@ class Dataset:
 
         print(truth, var, var_reduced, rr_loss)
 
-
+d = Dataset.simulate_dataset(100000,2, 0.2)
