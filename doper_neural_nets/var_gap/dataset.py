@@ -143,5 +143,5 @@ class Dataset:
 
 
 for beta in [0.5, 0.3, 0.1, 0.05, 0.03]:
-    d = Dataset.simulate_dataset(100000, 2, beta)
+    d = Dataset.simulate_dataset(1000000, 2, beta)
     d.get_diagnostics(beta)
