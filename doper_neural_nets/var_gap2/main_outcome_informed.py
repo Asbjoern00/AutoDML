@@ -12,9 +12,9 @@ def run_experiment(data, beta):
     fit, est = data.test_train_split(0.5)
     model_wrapper = ModelWrapper(in_=p, hidden_size=100, n_shared=3, n_not_shared=2)
     model_wrapper.train_outcome_head(
-        fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, l1=1, batch_size=64
+        fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, l1=10, batch_size=100
     )
-    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=False, epochs=1000, wd=1e-3, batch_size=64)
+    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=False, epochs=1000, wd=1e-3, batch_size=100)
     estimate_components = model_wrapper.get_estimate_components(est)
     estimate = torch.mean(estimate_components).item()
     return {
