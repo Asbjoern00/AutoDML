@@ -4,7 +4,7 @@ from doper_neural_nets.var_gap.model import ModelWrapper
 from doper_neural_nets.var_gap.dataset import Dataset
 import pandas as pd
 
-n = 10000
+n = 2000
 p = 2
 
 
@@ -14,7 +14,7 @@ def run_experiment(data, beta):
     model_wrapper.train_outcome_head(
         fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, l1=0.1, batch_size=64
     )
-    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=False, epochs=1000, wd=1e-3, batch_size=1000)
+    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=False, epochs=1000, wd=1e-3, batch_size=64)
     estimate_components = model_wrapper.get_estimate_components(est)
     estimate = torch.mean(estimate_components).item()
     return {
@@ -42,6 +42,6 @@ def run(beta):
 
 
 if __name__ == "__main__":
-    beta = [0, 1, 2, 3]
+    beta = [2]
     for b in beta:
         run(b)
