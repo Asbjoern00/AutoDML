@@ -15,7 +15,7 @@ class ModelWrapper:
         outcome = self.model.predict_outcome(data.net_input)
         treated_outcome = self.model.predict_outcome(treated.net_input)
         control_outcome = self.model.predict_outcome(control.net_input)
-        riesz = self.model.predict_riesz(data.net_input).clamp(-150, 150)
+        riesz = self.model.predict_riesz(data.net_input).clamp(-100, 100)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
     def train_outcome_head(

@@ -141,6 +141,6 @@ class Dataset:
         print(truth, var, var_reduced, rr_loss, rr.max())
 
 
-for beta in [0, 1, 1.5, 2, 2.5]:
+for beta in [0, 1, 1.5, 2, 2.3]:
     d = Dataset.simulate_dataset(1000000, 2, beta)
     d.get_diagnostics(beta)

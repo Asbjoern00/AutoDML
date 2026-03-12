@@ -40,7 +40,7 @@ def run(beta, iterations):
 
 
 if __name__ == "__main__":
-    beta = [2, 0, 1, 1.5, 2.5]
+    beta = [2, 0, 1, 1.5, 2.3]
     iterations = [[j + (100 * i) for j in range(100)] for i in range(10)]
     for i in iterations:
         for b in beta:
