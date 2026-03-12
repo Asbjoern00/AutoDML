@@ -81,7 +81,7 @@ class Dataset:
     def propensity_score(covariates, beta):
         p1 = (covariates[:, 1] < 0) * beta + (covariates[:, 1] > 0) * (1 - beta)
         p2 = 1 / (1 + np.exp(-covariates[:, 1]))
-        return 1/2 * (p1 + p2)
+        return 3/4*p1 + 1/4*p2
 
     @property
     def outcomes(self):
@@ -124,11 +124,11 @@ class Dataset:
             Dataset(control_raw_data, self.outcome_column, self.treatment_column, self.covariate_columns),
         )
 
-    def get_diagnostics(self):
+    def get_diagnostics(self, beta):
         Y = self.outcome_regression(self.covariates, self.treatments)
         Y0 = self.outcome_regression(self.covariates, np.zeros_like(self.treatments))
         Y1 = self.outcome_regression(self.covariates, np.ones_like(self.treatments))
-        pi = self.propensity_score(self.covariates, 2)
+        pi = self.propensity_score(self.covariates, beta)
         rr = self.treatments / pi + (1 - self.treatments) / (1 - pi)
         rr0 = -1 / (1 - pi)
         rr1 = 1 / pi
@@ -142,4 +142,5 @@ class Dataset:
 
         print(truth, var, var_reduced, rr_loss)
 
-d = Dataset.simulate_dataset(100000,2, 0.2)
+d = Dataset.simulate_dataset(100000,2, 0.1)
+d.get_diagnostics(0.1)
