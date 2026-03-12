@@ -24,7 +24,7 @@ def run_experiment(data, beta):
 
 def run(beta, iterations):
     results = []
-    output_file = f"doper_neural_nets/var_gap/outcome_informed_{beta}.csv"
+    output_file = f"doper_neural_nets/var_gap/separate_nets{beta}.csv"
     for i in iterations:
         np.random.seed(i)
         torch.manual_seed(i)
