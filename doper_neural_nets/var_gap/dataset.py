@@ -141,5 +141,7 @@ class Dataset:
 
         print(truth, var, var_reduced, rr_loss)
 
-d = Dataset.simulate_dataset(100000,2, 0.1)
-d.get_diagnostics(0.1)
+
+for beta in [0.5, 0.3, 0.1, 0.05, 0.03]:
+    d = Dataset.simulate_dataset(100000, 2, beta)
+    d.get_diagnostics(beta)
