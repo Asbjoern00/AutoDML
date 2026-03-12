@@ -80,8 +80,7 @@ class Dataset:
     @staticmethod
     def propensity_score(covariates, beta):
         p1 = (covariates[:, 1] < 0) * beta + (covariates[:, 1] > 0) * (1 - beta)
-        p2 = 1 / (1 + np.exp(-covariates[:, 1]*2))
-        return 1/2*(p1+p2)
+        return p1
 
     @property
     def outcomes(self):
