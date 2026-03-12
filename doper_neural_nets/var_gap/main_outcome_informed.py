@@ -42,6 +42,6 @@ def run(beta):
 
 
 if __name__ == "__main__":
-    beta = [2]
+    beta = [0.1]
     for b in beta:
         run(b)
