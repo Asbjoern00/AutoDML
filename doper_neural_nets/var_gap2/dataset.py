@@ -65,7 +65,7 @@ class Dataset:
 
     @classmethod
     def simulate_dataset(cls, number_of_samples, number_of_covariates, beta):
-        covariates = np.random.normal(loc=0, scale=1, size=(number_of_samples, number_of_covariates))
+        covariates = np.random.uniform(low=-2, high=2, size=(number_of_samples, number_of_covariates))
         propensities = cls.propensity_score(covariates, beta)
         treatments = np.random.binomial(1, propensities, size=number_of_samples)
         noise = np.random.normal(loc=0, scale=1, size=number_of_samples)
