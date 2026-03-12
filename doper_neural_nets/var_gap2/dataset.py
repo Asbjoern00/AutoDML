@@ -65,7 +65,7 @@ class Dataset:
 
     @classmethod
     def simulate_dataset(cls, number_of_samples, number_of_covariates, beta):
-        covariates = np.random.uniform(low=-2, high=2, size=(number_of_samples, number_of_covariates))
+        covariates = np.random.normal(loc=0, scale=1, size=(number_of_samples, number_of_covariates)).clip(-2.5,2.5)
         propensities = cls.propensity_score(covariates, beta)
         treatments = np.random.binomial(1, propensities, size=number_of_samples)
         noise = np.random.normal(loc=0, scale=1, size=number_of_samples)
@@ -127,7 +127,7 @@ class Dataset:
         Y0 = self.outcome_regression(self.covariates, np.zeros_like(self.treatments))
         Y1 = self.outcome_regression(self.covariates, np.ones_like(self.treatments))
         pi = self.propensity_score(self.covariates, beta)
-        rr = self.treatments / pi + (1 - self.treatments) / (1 - pi)
+        rr = self.treatments / pi - (1 - self.treatments) / (1 - pi)
         rr0 = -1 / (1 - pi)
         rr1 = 1 / pi
         rr_loss = np.mean(rr**2 - 2 * (rr1 - rr0))
@@ -141,6 +141,6 @@ class Dataset:
         print(truth, var, var_reduced, rr_loss, rr.max())
 
 
-for beta in [0, 1, 1.5, 2, 2.3]:
+for beta in [0, 1, 1.5, 2, 2.5]:
     d = Dataset.simulate_dataset(1000000, 2, beta)
     d.get_diagnostics(beta)

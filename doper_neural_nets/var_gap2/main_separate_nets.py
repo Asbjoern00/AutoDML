@@ -11,8 +11,8 @@ p = 2
 def run_experiment(data, beta):
     fit, est = data.test_train_split(0.5)
     model_wrapper = ModelWrapper(in_=p, hidden_size=100, n_shared=3, n_not_shared=2, type_="separate_nets")
-    model_wrapper.train_outcome_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=100)
-    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=100)
+    model_wrapper.train_outcome_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=64)
+    model_wrapper.train_riesz_head(fit, lr=1e-3, train_shared_layers=True, epochs=1000, wd=1e-3, batch_size=64)
     estimate_components = model_wrapper.get_estimate_components(est)
     estimate = torch.mean(estimate_components).item()
     return {
@@ -40,7 +40,7 @@ def run(beta, iterations):
 
 
 if __name__ == "__main__":
-    beta = [2, 0, 1, 1.5, 2.3]
+    beta = [2, 0, 1, 1.5, 2.5]
     iterations = [[j + (100 * i) for j in range(100)] for i in range(10)]
     for i in iterations:
         for b in beta:
