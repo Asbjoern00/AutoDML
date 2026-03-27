@@ -15,7 +15,7 @@ class ModelWrapper:
         outcome = self.model.predict_outcome(data.net_input)
         treated_outcome = self.model.predict_outcome(treated.net_input)
         control_outcome = self.model.predict_outcome(control.net_input)
-        riesz = self.model.predict_riesz(data.net_input).clamp(-100, 100)
+        riesz = self.model.predict_riesz(data.net_input)
         return treated_outcome - control_outcome + riesz * (data.outcomes_tensor - outcome)
 
     def train_outcome_head(
@@ -171,7 +171,8 @@ class Model(nn.Module):
         treat = x[:, 0].reshape(-1, 1)
         x = x[:, 1:]
         x = self.riesz_base(x)
-        return self.riesz_layers(x, treat)
+        x = self.riesz_layers(x, treat)
+        return x
 
 
 class RieszLoss(nn.Module):
